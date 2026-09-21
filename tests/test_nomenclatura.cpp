@@ -75,6 +75,18 @@ static void verificarBase(const char *formulaTexto, const char *esperado)
 	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
 }
 
+static void verificarSal(const char *formulaTexto, const char *esperado)
+{
+	FormulaParseada f;
+	ResultadoParseo rp = parsearFormula(formulaTexto, f);
+	ASSERT_TRUE(rp == ResultadoParseo::OK);
+
+	char resultado[TAM_MAX];
+	ResultadoNomenclatura rn = nomenclaturaTradicionalSal(f, resultado);
+	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
+	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
+}
+
 void test_nomenclatura()
 {
 	// Metales con una sola valencia: sin número romano.
@@ -257,4 +269,45 @@ void test_nomenclatura_bases()
 
 	parsearFormula("XxOH", f); // elemento inexistente, forma con parentesis implicita
 	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
+}
+
+void test_nomenclatura_sales()
+{
+	// Forma con parentesis, metal de valencia unica.
+	verificarSal("Al2(SO4)3", "sulfato de Aluminio");
+	verificarSal("Ca(NO3)2", "nitrato de Calcio");
+	verificarSal("Ca3(PO4)2", "fosfato de Calcio");
+
+	// Forma con parentesis, metal de valencia multiple (con numero romano).
+	verificarSal("Fe2(SO4)3", "sulfato de Hierro (III)");
+
+	// Forma sin parentesis (un solo grupo de radical): metal + no metal + O,
+	// que debe normalizarse igual que la forma con parentesis.
+	verificarSal("Na2SO4", "sulfato de Sodio");
+	verificarSal("CaCO3", "carbonato de Calcio");
+	verificarSal("NaNO3", "nitrato de Sodio");
+	verificarSal("Na2CO3", "carbonato de Sodio");
+	verificarSal("Na2SO3", "sulfito de Sodio");
+	verificarSal("FeSO4", "sulfato de Hierro (II)");
+
+	// Radical cuyo subindice de O es 1 (no se escribe explicito, ej. "ClO"
+	// no "ClO1"), tanto en fromula reducida como sin parentesis.
+	verificarSal("NaClO", "hipoclorito de Sodio");
+	verificarSal("KClO", "hipoclorito de Potasio");
+
+	// Casos de error.
+	FormulaParseada f;
+	char resultado[TAM_MAX];
+
+	parsearFormula("NaCl", f); // no tiene radical ni oxigeno
+	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::NO_ES_SAL);
+
+	parsearFormula("CaO", f); // es oxido, no sal (no hay no metal para formar radical)
+	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::NO_ES_SAL);
+
+	parsearFormula("Na2SO5", f); // SO5 no es un radical conocido
+	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
+
+	parsearFormula("Fe2(SO4)5", f); // proporcion que no corresponde a ninguna valencia de Fe
+	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
 }

@@ -6,6 +6,7 @@
 #include "no_metales.h"
 #include "hidracidos.h"
 #include "oxacidos.h"
+#include "radicales.h"
 
 enum class ResultadoNomenclatura {
 	OK,
@@ -16,6 +17,7 @@ enum class ResultadoNomenclatura {
 	NO_ES_HIDRACIDO,         // no tiene exactamente H + no metal formador de hidrácido, en la proporción esperada
 	NO_ES_OXACIDO,           // no tiene exactamente H + no metal + oxígeno
 	NO_ES_BASE,              // no tiene exactamente metal + grupo hidroxilo (OH), en la proporción esperada
+	NO_ES_SAL,               // no tiene exactamente metal + radical poliatómico conocido, en la proporción esperada
 	ELEMENTO_DESCONOCIDO,    // el metal no está en la tabla de elementos
 	VALENCIA_NO_DETERMINADA, // el subíndice de O no corresponde a ninguna valencia conocida del metal
 };
@@ -68,6 +70,16 @@ ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &form
 // (p.ej. "NaOH", que el parser entrega como {"Na",1},{"O",1},{"H",1}): esta
 // función normaliza ambos patrones antes de deducir la valencia del metal.
 ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char resultado[TAM_MAX]);
+
+// Calcula la nomenclatura tradicional de una sal oxisal (Metal_x(Radical)_y)
+// a partir de su fórmula ya parseada, escribiendo el resultado (p.ej.
+// "sulfato de aluminio") en `resultado`. Acepta tanto la forma con
+// paréntesis para varios grupos (p.ej. "Al2(SO4)3", que el parser entrega
+// como {"Al",2},{"SO4",3}) como la forma sin paréntesis para un solo grupo
+// (p.ej. "Na2SO4", que el parser entrega como {"Na",2},{"S",1},{"O",4}):
+// esta función normaliza ambos patrones antes de identificar el radical y
+// verificar que la carga del radical y la valencia del metal se equilibran.
+ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula, char resultado[TAM_MAX]);
 
 // Devuelve un mensaje de error legible para un ResultadoNomenclatura distinto de OK.
 const char *mensajeError(ResultadoNomenclatura resultado);

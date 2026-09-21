@@ -39,6 +39,10 @@ int main()
 				base();
 				break;
 
+			case 7: // Sales oxisal
+				salOxisal();
+				break;
+
 			case 0: // Salir
 				repetir = false;
 				break;

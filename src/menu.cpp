@@ -120,3 +120,10 @@ void base()
 		"Introduzca la formula de la base del que desea conocer su nomenclatura stock (ej. Ca(OH)2 o NaOH):",
 		nomenclaturaStockBase);
 }
+
+void salOxisal()
+{
+	pedirFormulaYNombrar(
+		"Introduzca la formula de la sal oxisal de la que desea conocer su nomenclatura (ej. Al2(SO4)3 o CaCO3):",
+		nomenclaturaTradicionalSal);
+}

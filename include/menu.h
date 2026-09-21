@@ -22,4 +22,7 @@ void acidoOxacido();
 // Pide una fórmula de base (hidróxido) y muestra su nomenclatura Stock.
 void base();
 
+// Pide una fórmula de sal oxisal y muestra su nomenclatura tradicional.
+void salOxisal();
+
 #endif // CHEMINATOR_MENU_H

@@ -468,6 +468,162 @@ ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char
 	return ResultadoNomenclatura::OK;
 }
 
+// Intenta reducir la fórmula ya parseada de una sal a exactamente dos
+// componentes lógicos: el metal y el radical con su subíndice (número de
+// grupos). Reconoce dos formas equivalentes que el parser puede entregar:
+//   - Con paréntesis: {"Al",2}, {"SO4",3}                (2 componentes)
+//   - Sin paréntesis: {"Na",2}, {"S",1}, {"O",4}          (3 componentes,
+//     solo válida para un único grupo de radical, ya que sin paréntesis
+//     no puede escribirse un multiplicador de grupo).
+// Para la forma sin paréntesis, reconstruye la fórmula del radical
+// ("S" + subíndice de O, p.ej. "SO4") a partir del no metal y el oxígeno.
+// Devuelve false si la fórmula no coincide con ninguno de los dos patrones.
+static bool normalizarSal(const FormulaParseada &formula,
+                           const ComponenteFormula *&metal,
+                           char formulaRadical[TAM_MAX],
+                           int &subindiceRadical)
+{
+	metal = nullptr;
+	formulaRadical[0] = '\0';
+	subindiceRadical = -1;
+
+	if (formula.cantidadComponentes == 2)
+	{
+		const ComponenteFormula *radicalComp = nullptr;
+		for (int i = 0; i < formula.cantidadComponentes; i++)
+		{
+			// Un radical siempre viene de un grupo entre paréntesis, cuyo
+			// símbolo el parser entrega con más de un carácter (p.ej. "SO4",
+			// "OH"); un símbolo de elemento simple tiene a lo sumo 2.
+			if (std::strlen(formula.componentes[i].simbolo) > 2)
+			{
+				radicalComp = &formula.componentes[i];
+			}
+			else
+			{
+				metal = &formula.componentes[i];
+			}
+		}
+
+		if (metal != nullptr && radicalComp != nullptr)
+		{
+			std::strcpy(formulaRadical, radicalComp->simbolo);
+			subindiceRadical = radicalComp->subindice;
+			return true;
+		}
+		return false;
+	}
+
+	if (formula.cantidadComponentes == 3)
+	{
+		const ComponenteFormula *noMetalComp = nullptr;
+		const ComponenteFormula *oxigeno = nullptr;
+		metal = nullptr;
+
+		for (int i = 0; i < formula.cantidadComponentes; i++)
+		{
+			const char *simbolo = formula.componentes[i].simbolo;
+			if (std::strcmp(simbolo, "O") == 0)
+			{
+				oxigeno = &formula.componentes[i];
+			}
+			else if (buscarNoMetal(simbolo) != nullptr || buscarElemento(simbolo) == nullptr)
+			{
+				// El no metal del radical: se distingue del metal porque no
+				// está en la tabla de metales (buscarElemento), o porque sí
+				// figura como no metal conocido.
+				noMetalComp = &formula.componentes[i];
+			}
+			else
+			{
+				metal = &formula.componentes[i];
+			}
+		}
+
+		if (metal != nullptr && noMetalComp != nullptr && oxigeno != nullptr && noMetalComp->subindice == 1)
+		{
+			// Se arma "<simbolo>O<subindice>" (p.ej. "S"+"O"+"4" -> "SO4"),
+			// igual a como el parser entrega un grupo con paréntesis, copiando
+			// el símbolo, la "O" fija y el número por separado (en vez de un
+			// snprintf con "%s" de tamaño no verificable en compilación, ya
+			// que el compilador no puede acotar la longitud de simbolo[TAM_MAX]).
+			// Un subíndice de O igual a 1 no se escribe (p.ej. "ClO", no
+			// "ClO1"), igual que en la notación química estándar tabulada.
+			std::strncpy(formulaRadical, noMetalComp->simbolo, TAM_MAX - 1);
+			formulaRadical[TAM_MAX - 1] = '\0';
+			size_t longitudSimbolo = std::strlen(formulaRadical);
+			if (oxigeno->subindice == 1)
+			{
+				std::snprintf(formulaRadical + longitudSimbolo, TAM_MAX - longitudSimbolo, "O");
+			}
+			else
+			{
+				std::snprintf(formulaRadical + longitudSimbolo, TAM_MAX - longitudSimbolo, "O%d", oxigeno->subindice);
+			}
+			subindiceRadical = 1;
+			return true;
+		}
+		return false;
+	}
+
+	return false;
+}
+
+ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula, char resultado[TAM_MAX])
+{
+	resultado[0] = '\0';
+
+	const ComponenteFormula *metal = nullptr;
+	char formulaRadical[TAM_MAX];
+	int subindiceRadical = -1;
+	if (!normalizarSal(formula, metal, formulaRadical, subindiceRadical))
+	{
+		return ResultadoNomenclatura::NO_ES_SAL;
+	}
+
+	const InfoElemento *infoMetal = buscarElemento(metal->simbolo);
+	if (infoMetal == nullptr)
+	{
+		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
+	}
+
+	const InfoRadical *infoRadical = buscarRadical(formulaRadical);
+	if (infoRadical == nullptr)
+	{
+		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
+	}
+
+	// La fórmula equilibra cargas cuando subindice_metal * valencia_metal =
+	// subindice_radical * carga_radical (misma idea de intercambio de
+	// valencias que en óxidos, pero con el radical como unidad completa).
+	int valenciaDeducida = -1;
+	for (int i = 0; i < infoMetal->cantidadValencias; i++)
+	{
+		int v = infoMetal->valencias[i];
+		if (metal->subindice * v == subindiceRadical * infoRadical->carga)
+		{
+			valenciaDeducida = v;
+			break;
+		}
+	}
+
+	if (valenciaDeducida == -1)
+	{
+		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
+	}
+
+	if (infoMetal->cantidadValencias == 1)
+	{
+		std::snprintf(resultado, TAM_MAX, "%s de %s", infoRadical->nombre, infoMetal->nombre);
+	}
+	else
+	{
+		std::snprintf(resultado, TAM_MAX, "%s de %s (%s)", infoRadical->nombre, infoMetal->nombre, aRomano(valenciaDeducida));
+	}
+
+	return ResultadoNomenclatura::OK;
+}
+
 const char *mensajeError(ResultadoNomenclatura resultado)
 {
 	switch (resultado)
@@ -488,6 +644,8 @@ const char *mensajeError(ResultadoNomenclatura resultado)
 			return "La formula no corresponde a un acido oxacido (se esperaba H + no metal + oxigeno).";
 		case ResultadoNomenclatura::NO_ES_BASE:
 			return "La formula no corresponde a una base (se esperaba metal + grupo hidroxilo OH, ej. Ca(OH)2 o NaOH).";
+		case ResultadoNomenclatura::NO_ES_SAL:
+			return "La formula no corresponde a una sal oxisal (se esperaba metal + radical conocido, ej. Al2(SO4)3 o CaCO3).";
 		case ResultadoNomenclatura::ELEMENTO_DESCONOCIDO:
 			return "El elemento de la formula no esta en la tabla de elementos/no metales soportados.";
 		case ResultadoNomenclatura::VALENCIA_NO_DETERMINADA:
