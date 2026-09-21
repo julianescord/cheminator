@@ -2,7 +2,7 @@
 
 Programa de consola en C++ para practicar la nomenclatura de compuestos químicos inorgánicos (óxidos, peróxidos, anhídridos, ácidos hidrácidos y oxácidos, bases y sales oxisal), obteniendo su nomenclatura Stock a partir de la fórmula.
 
-> Proyecto educativo en desarrollo. El menú principal y la nomenclatura Stock de óxidos funcionan de punta a punta; el resto de opciones (peróxidos, anhídridos, ácidos, bases, sales) están planificadas pero aún no implementadas.
+> Proyecto educativo en desarrollo. El menú principal y la nomenclatura Stock de óxidos y peróxidos funcionan de punta a punta; el resto de opciones (anhídridos, ácidos, bases, sales) están planificadas pero aún no implementadas.
 
 ## Estructura del proyecto
 
@@ -24,7 +24,7 @@ cheminator/
 │   ├── main_tests.cpp
 │   ├── test_formula.cpp
 │   ├── test_elementos.cpp
-│   └── test_nomenclatura.cpp
+│   └── test_nomenclatura.cpp   # incluye óxidos y peróxidos
 ├── .github/workflows/build.yml  # CI: compila y corre los tests en cada push/PR
 ├── Makefile
 └── README.md
@@ -65,8 +65,8 @@ Elementos soportados actualmente: H, Li, Na, K, Ca, Mg, Al, Zn, Ag, Cu, Fe, Au, 
 - [x] Parseo de fórmulas químicas (símbolo + subíndice, con validación de errores)
 - [x] Tabla de elementos con valencias
 - [x] Nomenclatura Stock completa para óxidos (deducción de valencia a partir de la fórmula)
+- [x] Nomenclatura Stock completa para peróxidos (grupo peroxo O2, valencia -1 por átomo)
 - [x] Pruebas automatizadas y CI en GitHub Actions
-- [ ] Peróxidos
 - [ ] Anhídridos
 - [ ] Ácidos hidrácidos y oxácidos
 - [ ] Bases

@@ -8,6 +8,7 @@ enum class ResultadoNomenclatura {
 	OK,
 	FORMULA_INVALIDA,        // no parseó como fórmula química
 	NO_ES_OXIDO,             // no tiene exactamente metal + oxígeno
+	NO_ES_PEROXIDO,          // no tiene exactamente metal + grupo peroxo (O en subíndice par)
 	ELEMENTO_DESCONOCIDO,    // el metal no está en la tabla de elementos
 	VALENCIA_NO_DETERMINADA, // el subíndice de O no corresponde a ninguna valencia conocida del metal
 };
@@ -17,6 +18,13 @@ enum class ResultadoNomenclatura {
 // `resultado`. Requiere que `formula` tenga exactamente dos componentes:
 // un metal y oxígeno ("O"), en cualquier orden.
 ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, char resultado[TAM_MAX]);
+
+// Calcula la nomenclatura Stock de un peróxido (Metal2(O2) o equivalente) a
+// partir de su fórmula ya parseada, escribiendo el resultado (p.ej.
+// "peroxido de sodio") en `resultado`. Un peróxido siempre contiene el grupo
+// peroxo (O2)^2-, por lo que el subíndice de oxígeno en la fórmula debe ser
+// el doble del subíndice del metal (p.ej. Na2O2, H2O2, BaO2).
+ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, char resultado[TAM_MAX]);
 
 // Devuelve un mensaje de error legible para un ResultadoNomenclatura distinto de OK.
 const char *mensajeError(ResultadoNomenclatura resultado);

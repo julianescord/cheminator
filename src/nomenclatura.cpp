@@ -29,17 +29,19 @@ static const char *aRomano(int numero)
 	}
 }
 
-ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, char resultado[TAM_MAX])
+// Separa una fórmula de dos componentes en su parte metálica y su oxígeno.
+// Devuelve false si la fórmula no tiene exactamente esa forma (metal + "O").
+static bool separarMetalYOxigeno(const FormulaParseada &formula,
+                                  const ComponenteFormula *&metal,
+                                  const ComponenteFormula *&oxigeno)
 {
-	resultado[0] = '\0';
+	metal = nullptr;
+	oxigeno = nullptr;
 
 	if (formula.cantidadComponentes != 2)
 	{
-		return ResultadoNomenclatura::NO_ES_OXIDO;
+		return false;
 	}
-
-	const ComponenteFormula *metal = nullptr;
-	const ComponenteFormula *oxigeno = nullptr;
 
 	for (int i = 0; i < formula.cantidadComponentes; i++)
 	{
@@ -53,7 +55,16 @@ ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, cha
 		}
 	}
 
-	if (metal == nullptr || oxigeno == nullptr)
+	return metal != nullptr && oxigeno != nullptr;
+}
+
+ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, char resultado[TAM_MAX])
+{
+	resultado[0] = '\0';
+
+	const ComponenteFormula *metal = nullptr;
+	const ComponenteFormula *oxigeno = nullptr;
+	if (!separarMetalYOxigeno(formula, metal, oxigeno))
 	{
 		return ResultadoNomenclatura::NO_ES_OXIDO;
 	}
@@ -104,6 +115,52 @@ ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, cha
 	return ResultadoNomenclatura::OK;
 }
 
+ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, char resultado[TAM_MAX])
+{
+	resultado[0] = '\0';
+
+	const ComponenteFormula *metal = nullptr;
+	const ComponenteFormula *oxigeno = nullptr;
+	if (!separarMetalYOxigeno(formula, metal, oxigeno))
+	{
+		return ResultadoNomenclatura::NO_ES_PEROXIDO;
+	}
+
+	const InfoElemento *infoMetal = buscarElemento(metal->simbolo);
+	if (infoMetal == nullptr)
+	{
+		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
+	}
+
+	// Un peróxido siempre contiene el grupo peroxo (O2)^2-, cada oxígeno del
+	// grupo aporta valencia -1 (no -2 como en un óxido normal). Por lo tanto
+	// la carga se equilibra cuando subindice_metal * valencia_metal =
+	// subindice_oxigeno * 1, es decir subindice_O = subindice_metal * v.
+	// A diferencia del óxido, aquí el subíndice de O no se reduce junto con
+	// el del metal porque el grupo (O2) es una unidad indivisible: por eso se
+	// compara la fórmula "tal cual" contra ese producto, no una versión
+	// reducida por mcd.
+	int valenciaDeducida = -1;
+
+	for (int i = 0; i < infoMetal->cantidadValencias; i++)
+	{
+		int v = infoMetal->valencias[i];
+		if (oxigeno->subindice == metal->subindice * v)
+		{
+			valenciaDeducida = v;
+			break;
+		}
+	}
+
+	if (valenciaDeducida == -1)
+	{
+		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
+	}
+
+	std::snprintf(resultado, TAM_MAX, "peroxido de %s", infoMetal->nombre);
+	return ResultadoNomenclatura::OK;
+}
+
 const char *mensajeError(ResultadoNomenclatura resultado)
 {
 	switch (resultado)
@@ -114,6 +171,8 @@ const char *mensajeError(ResultadoNomenclatura resultado)
 			return "La formula no es quimicamente valida.";
 		case ResultadoNomenclatura::NO_ES_OXIDO:
 			return "La formula no corresponde a un oxido (se esperaba metal + oxigeno).";
+		case ResultadoNomenclatura::NO_ES_PEROXIDO:
+			return "La formula no corresponde a un peroxido (se esperaba metal + grupo peroxo O2).";
 		case ResultadoNomenclatura::ELEMENTO_DESCONOCIDO:
 			return "El elemento metalico de la formula no esta en la tabla de elementos soportados.";
 		case ResultadoNomenclatura::VALENCIA_NO_DETERMINADA:

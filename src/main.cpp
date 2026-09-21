@@ -19,6 +19,10 @@ int main()
 				oxido();
 				break;
 
+			case 2: // Peroxidos
+				peroxido();
+				break;
+
 			case 0: // Salir
 				repetir = false;
 				break;

@@ -7,4 +7,7 @@ void dibujarMenu();
 // Pide una fórmula de óxido y muestra su nomenclatura Stock.
 void oxido();
 
+// Pide una fórmula de peróxido y muestra su nomenclatura Stock.
+void peroxido();
+
 #endif // CHEMINATOR_MENU_H

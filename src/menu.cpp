@@ -39,11 +39,17 @@ static void leerFormula(char destino[TAM_MAX])
 	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-void oxido()
+// Firma común de las funciones nomenclaturaStockOxido/nomenclaturaStockPeroxido.
+using CalculadoraNomenclatura = ResultadoNomenclatura (*)(const FormulaParseada &, char[TAM_MAX]);
+
+// Flujo compartido por las distintas opciones del menú: pide una fórmula,
+// la parsea, calcula su nomenclatura con la función indicada y reporta el
+// resultado o el error correspondiente.
+static void pedirFormulaYNombrar(const char *mensajeEntrada, CalculadoraNomenclatura calcular)
 {
 	char formula[TAM_MAX];
 
-	std::cout << "\nIntroduzca la formula del oxido del que desea conocer su nomenclatura stock (ej. Fe2O3):";
+	std::cout << "\n" << mensajeEntrada;
 	leerFormula(formula);
 
 	if (formula[0] == '\0')
@@ -63,7 +69,7 @@ void oxido()
 	}
 
 	char nomenclatura[TAM_MAX];
-	ResultadoNomenclatura resultadoNomenclatura = nomenclaturaStockOxido(parseada, nomenclatura);
+	ResultadoNomenclatura resultadoNomenclatura = calcular(parseada, nomenclatura);
 	if (resultadoNomenclatura != ResultadoNomenclatura::OK)
 	{
 		std::cout << "\nError: " << mensajeError(resultadoNomenclatura) << "\n";
@@ -71,4 +77,18 @@ void oxido()
 	}
 
 	std::cout << "\nNomenclatura Stock del compuesto: " << nomenclatura << "\n";
+}
+
+void oxido()
+{
+	pedirFormulaYNombrar(
+		"Introduzca la formula del oxido del que desea conocer su nomenclatura stock (ej. Fe2O3):",
+		nomenclaturaStockOxido);
+}
+
+void peroxido()
+{
+	pedirFormulaYNombrar(
+		"Introduzca la formula del peroxido del que desea conocer su nomenclatura stock (ej. Na2O2):",
+		nomenclaturaStockPeroxido);
 }
