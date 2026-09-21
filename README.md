@@ -217,10 +217,17 @@ Formula del compuesto: Al2(SO4)3
 
 ## Alcance actual
 
-Metales: H, Li, Na, K, Ca, Mg, Al, Zn, Ag, Cu, Fe, Au, Pb, Sn (ver [`src/elementos.cpp`](src/elementos.cpp)).
-No metales para anhídridos y oxácidos: C, N, P, S, Cl, Br, I (ver [`src/no_metales.cpp`](src/no_metales.cpp), [`src/oxacidos.cpp`](src/oxacidos.cpp)).
-No metales para ácidos hidrácidos: F, Cl, Br, I, S, Se, Te (ver [`src/hidracidos.cpp`](src/hidracidos.cpp)).
-Radicales para sales oxisal: carbonato, nitrito/nitrato, fosfito/fosfato, (hipo)sulfito/sulfato, y los 4 oxianiones de Cl/Br/I (ver [`src/radicales.cpp`](src/radicales.cpp)).
+**Metales (29)** — H, Li, Na, K, Rb, Cs, Be, Mg, Ca, Sr, Ba, Ra, Al, Zn, Cd, Ag, O, Cu, Hg, Fe, Co, Ni, Cr, Mn, Au, Pb, Sn, Pt, Ti (ver [`src/elementos.cpp`](src/elementos.cpp)).
+
+**No metales para anhídridos y oxácidos (13)** — B, C, Si, N, P, As, Sb, S, Se, Te, Cl, Br, I (ver [`src/no_metales.cpp`](src/no_metales.cpp), [`src/oxacidos.cpp`](src/oxacidos.cpp)). El flúor no aparece: al ser el elemento más electronegativo, no forma óxidos ácidos.
+
+**No metales para ácidos hidrácidos (7)** — F, Cl, Br, I, S, Se, Te (ver [`src/hidracidos.cpp`](src/hidracidos.cpp)).
+
+**Radicales para sales oxisal (30)** — borato, carbonato, silicato, nitrito/nitrato, fosfito/fosfato, arsenito/arseniato, antimonito/antimoniato, (hipo)sulfito/sulfato, selenito/selenato, telurito/telurato, y los 4 oxianiones de Cl/Br/I (ver [`src/radicales.cpp`](src/radicales.cpp)).
+
+Cada fila de cada tabla está verificada en las dos direcciones: se genera el
+compuesto, se nombra y se vuelve a formular, comprobando que sale la fórmula
+original.
 
 ## Estado / Roadmap
 
@@ -234,7 +241,7 @@ Radicales para sales oxisal: carbonato, nitrito/nitrato, fosfito/fosfato, (hipo)
 - [x] Compilación a WebAssembly con página de ejemplo
 - [x] Pruebas automatizadas y CI (nativo, solo-librería, consumidor en C y WebAssembly)
 - [x] Formulación inversa: escribir el nombre en español y obtener la fórmula
-- [ ] Ampliar tablas de metales, no metales y radicales
+- [x] Ampliar tablas de metales, no metales y radicales
 - [ ] Compuestos de coordinación (`[Fe(CN)6]³⁻`), donde un modelo de grafo sí se justifica
 
 ## Licencia

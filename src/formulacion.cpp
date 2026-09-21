@@ -461,7 +461,7 @@ ResultadoFormulacion formularAnhidrido(std::string_view resto)
 			const detalle::Afijos afijos =
 				detalle::afijosTradicionales(static_cast<int>(i), noMetal.cantidadValencias);
 			const std::string candidato =
-				normalizarNombre(std::format("{}{}{}", afijos.prefijo, noMetal.raiz, afijos.sufijo));
+				normalizarNombre(std::format("{}{}{}", afijos.prefijo, noMetal.raizPara(afijos.sufijo), afijos.sufijo));
 
 			if (candidato != resto)
 			{

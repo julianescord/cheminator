@@ -17,7 +17,11 @@ constexpr InfoRadical radical(std::string_view formula, int carga, std::string_v
 
 // Radicales derivados de los oxacidos tabulados en oxacidos.cpp.
 constexpr std::array TABLA_RADICALES = {
+	radical("BO3", 3, "borato"),
+
 	radical("CO3", 2, "carbonato"),
+
+	radical("SiO4", 4, "silicato"),
 
 	radical("NO2", 1, "nitrito"),
 	radical("NO3", 1, "nitrato"),
@@ -28,6 +32,18 @@ constexpr std::array TABLA_RADICALES = {
 	radical("SO2", 2, "hiposulfito"),
 	radical("SO3", 2, "sulfito"),
 	radical("SO4", 2, "sulfato"),
+
+	radical("SeO3", 2, "selenito"),
+	radical("SeO4", 2, "selenato"),
+
+	radical("TeO3", 2, "telurito"),
+	radical("TeO4", 2, "telurato"),
+
+	radical("AsO3", 3, "arsenito"),
+	radical("AsO4", 3, "arseniato"),
+
+	radical("SbO3", 3, "antimonito"),
+	radical("SbO4", 3, "antimoniato"),
 
 	radical("ClO", 1, "hipoclorito"),
 	radical("ClO2", 1, "clorito"),

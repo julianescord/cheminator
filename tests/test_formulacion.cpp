@@ -66,6 +66,19 @@ void test_formulacion()
 	ASSERT_TRUE(errorEs("fosgenato de Sodio", ErrorFormulacion::RADICAL_DESCONOCIDO));  // radical fuera de la tabla
 	ASSERT_TRUE(errorEs("compuesto raro", ErrorFormulacion::CATEGORIA_DESCONOCIDA));  // nombre que no encaja en ninguna categoria
 
+	// --- Raiz que cambia segun el sufijo -------------------------------------
+
+	// El arsenico y el selenio llevan una i ante -oso y no ante -ico. Con una
+	// sola raiz, la valencia mayor salia como "arseniico" y "seleniico".
+	ASSERT_TRUE(formulaEs("anhidrido arsenioso", "As2O3"));
+	ASSERT_TRUE(formulaEs("anhidrido arsenico", "As2O5"));
+	ASSERT_TRUE(formulaEs("anhidrido selenioso", "SeO2"));
+	ASSERT_TRUE(formulaEs("anhidrido selenico", "SeO3"));
+
+	// El azufre comparte raiz para los dos sufijos, que es el caso normal.
+	ASSERT_TRUE(formulaEs("anhidrido sulfuroso", "SO2"));
+	ASSERT_TRUE(formulaEs("anhidrido sulfurico", "SO3"));
+
 	// --- Normalizacion, en aislado -------------------------------------------
 
 	// El resultado se guarda en una variable antes de comparar: pasar
@@ -100,6 +113,17 @@ void test_ida_y_vuelta()
 		"NaOH", "Ca(OH)2", "Fe(OH)3", "Al(OH)3",
 		// sales oxisal
 		"Na2SO4", "Al2(SO4)3", "CaCO3", "KNO3", "Fe2(SO4)3", "NaClO",
+
+		// Elementos anadidos despues de la primera version de las tablas. Se
+		// incluyen aqui y no en una prueba aparte para que cualquier fila
+		// nueva quede cubierta en las dos direcciones desde el principio.
+		"BaO", "SrO", "BeO", "Rb2O", "Cs2O", "RaO", "CdO",
+		"NiO", "Ni2O3", "CoO", "Co2O3", "CrO", "Cr2O3", "CrO3",
+		"MnO", "Mn2O7", "HgO", "Hg2O", "PtO", "PtO2", "TiO2", "Ti2O3",
+		"B2O3", "SiO2", "As2O3", "As2O5", "Sb2O3", "SeO2", "SeO3", "TeO3",
+		"H3BO3", "H4SiO4", "H3AsO4", "H3SbO3", "H2SeO4", "H2TeO3",
+		"Ba(OH)2", "Ni(OH)2", "Cr(OH)3", "Mn(OH)2",
+		"BaCO3", "Ni2(SO4)3", "K3AsO4", "Na2SeO4",
 	};
 
 	for (const char *original : FORMULAS)

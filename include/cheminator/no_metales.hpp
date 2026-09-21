@@ -17,6 +17,10 @@ struct InfoNoMetal {
 	// Raiz para los sufijos -oso/-ico ("sulfur" para el azufre, que da
 	// "sulfuroso"/"sulfurico"); no siempre coincide con el nombre.
 	std::string_view raiz;
+	// Casi siempre la raiz es la misma para los dos sufijos, pero el arsenico
+	// y el selenio llevan una i ante -oso y no ante -ico: "arsenioso" pero
+	// "arsenico", no "arseniico". Cuando difieren, esta es la de -ico.
+	std::string_view raizIco;
 	// En orden ascendente: la nomenclatura tradicional asigna prefijo y
 	// sufijo segun la posicion que ocupa la valencia usada en esta lista.
 	std::array<Valencia, MAX_VALENCIAS> valencias;
@@ -25,6 +29,18 @@ struct InfoNoMetal {
 	constexpr std::span<const Valencia> valenciasConocidas() const noexcept
 	{
 		return {valencias.data(), static_cast<std::size_t>(cantidadValencias)};
+	}
+
+	// La raiz que corresponde al sufijo que se va a usar. Se consulta por aqui
+	// en vez de leer los campos directamente, para no tener que recordar en
+	// cada sitio que algunos elementos cambian de raiz segun el sufijo.
+	constexpr std::string_view raizPara(std::string_view sufijo) const noexcept
+	{
+		if (sufijo == "ico" && !raizIco.empty())
+		{
+			return raizIco;
+		}
+		return raiz;
 	}
 
 	// Posicion (0-indexada) de una valencia dentro de la lista ordenada, que

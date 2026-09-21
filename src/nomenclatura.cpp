@@ -392,7 +392,7 @@ ResultadoNomenclatura nombrarAnhidrido(const Formula &formula)
 	pasos.agregar("Por esa posicion le corresponden el prefijo \"{}\" y el sufijo \"{}\".",
 	              afijos.prefijo.empty() ? std::string_view{"(ninguno)"} : afijos.prefijo, afijos.sufijo);
 
-	return armar(std::format("anhidrido {}{}{}", afijos.prefijo, info->raiz, afijos.sufijo),
+	return armar(std::format("anhidrido {}{}{}", afijos.prefijo, info->raizPara(afijos.sufijo), afijos.sufijo),
 	             CategoriaCompuesto::ANHIDRIDO, pasos);
 }
 

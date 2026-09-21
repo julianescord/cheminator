@@ -18,17 +18,35 @@ constexpr InfoOxacido oxacido(std::string_view simbolo, int hidrogenos, int atom
 // tradicional estandar. El acido de nitrogeno con valencia 1 (HNO) queda
 // fuera por inestable e inusual en este nivel.
 constexpr std::array TABLA_OXACIDOS = {
+	oxacido("B", 3, 1, 3, "acido borico"),
+
 	oxacido("C", 2, 1, 3, "acido carbonico"),
+
+	oxacido("Si", 4, 1, 4, "acido silicico"),
 
 	oxacido("N", 1, 1, 2, "acido nitroso"),
 	oxacido("N", 1, 1, 3, "acido nitrico"),
 
+	// El fosforo, el arsenico y el antimonio llevan tres hidrogenos, no uno:
+	// es el caso que obliga a tabular en vez de derivar anhidrido + agua.
 	oxacido("P", 3, 1, 3, "acido fosforoso"),
 	oxacido("P", 3, 1, 4, "acido fosforico"),
+
+	oxacido("As", 3, 1, 3, "acido arsenioso"),
+	oxacido("As", 3, 1, 4, "acido arsenico"),
+
+	oxacido("Sb", 3, 1, 3, "acido antimonioso"),
+	oxacido("Sb", 3, 1, 4, "acido antimonico"),
 
 	oxacido("S", 2, 1, 2, "acido hiposulfuroso"),
 	oxacido("S", 2, 1, 3, "acido sulfuroso"),
 	oxacido("S", 2, 1, 4, "acido sulfurico"),
+
+	oxacido("Se", 2, 1, 3, "acido selenioso"),
+	oxacido("Se", 2, 1, 4, "acido selenico"),
+
+	oxacido("Te", 2, 1, 3, "acido teluroso"),
+	oxacido("Te", 2, 1, 4, "acido telurico"),
 
 	oxacido("Cl", 1, 1, 1, "acido hipocloroso"),
 	oxacido("Cl", 1, 1, 2, "acido cloroso"),
