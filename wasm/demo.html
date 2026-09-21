@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cheminator</title>
+<title>Cheminator — nomenclatura química inorgánica</title>
+<meta name="description" content="Nombra compuestos químicos inorgánicos en español y explica el razonamiento paso a paso. Núcleo C++ compilado a WebAssembly: todo el análisis ocurre en su navegador.">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Cheminator — nomenclatura química inorgánica">
+<meta property="og:description" content="Escriba una fórmula y vea cómo se deduce su nombre, paso a paso. Sin servidor: el análisis ocurre en su navegador.">
+<meta property="og:url" content="https://julianescord.github.io/cheminator/">
+<meta name="twitter:card" content="summary">
 <style>
   :root {
     --fondo: #fbfbfd;
@@ -91,6 +98,13 @@
     border-top: 1px solid var(--borde);
     color: var(--tenue); font-size: 0.82rem;
   }
+  .enlaces {
+    margin-top: 10px;
+    color: var(--tenue); font-size: 0.82rem;
+  }
+  .enlaces a { color: var(--acento); text-decoration: none; }
+  .enlaces a:hover { text-decoration: underline; }
+  .enlaces span { margin: 0 6px; }
 </style>
 </head>
 <body>
@@ -113,6 +127,16 @@
   </div>
 
   <p class="pie" id="pie"></p>
+
+  <!-- Los enlaces van en el HTML y no en el script: asi siguen estando aunque
+       el modulo de WebAssembly no llegue a cargar. -->
+  <p class="enlaces">
+    <a href="https://github.com/julianescord/cheminator">Código fuente</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://julianescord.github.io/software/cheminator/">Sobre el proyecto</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://julianescord.github.io/">Julián E. Ordoñez</a>
+  </p>
 </main>
 
 <script type="module">

@@ -1,0 +1,89 @@
+name: Desplegar la demo a GitHub Pages
+
+# La demo se publica solo desde la rama principal: las ramas de trabajo ya se
+# compilan a WebAssembly en el workflow de build, que es donde se detecta si
+# algo se rompe. Aqui solo se publica lo que ya paso por ahi.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Se deja terminar el despliegue en curso en vez de cancelarlo a medias.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Instalar Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Compilar a WebAssembly
+        run: |
+          emcmake cmake -S . -B build-wasm \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCHEMINATOR_BUILD_TESTS=OFF
+          cmake --build build-wasm
+
+      # Se comprueba que el modulo funciona ANTES de publicarlo: si se
+      # desplegara sin esto, un fallo solo se veria al abrir la pagina.
+      - name: Verificar el modulo antes de publicar
+        run: |
+          cat > build-wasm/verificar.mjs <<'FIN'
+          import crearCheminator from './cheminator.js';
+          const Modulo = await crearCheminator();
+          const casos = [
+            ['Fe2O3',      'oxido de Hierro (III)'],
+            ['Al2(SO4)3',  'sulfato de Aluminio'],
+          ];
+          for (const [formula, esperado] of casos) {
+              const r = Modulo.nombrar(formula);
+              if (!r.ok || r.nombre !== esperado) {
+                  console.error(`FALLA ${formula}: se esperaba "${esperado}", se obtuvo "${r.nombre ?? r.error}"`);
+                  process.exit(1);
+              }
+              console.log(`ok  ${formula} -> ${r.nombre}`);
+          }
+          console.log(`Modulo v${Modulo.version()} verificado.`);
+          FIN
+          node build-wasm/verificar.mjs
+
+      # Solo se publican los artefactos que sirve la pagina. El resto del
+      # directorio de compilacion son objetos intermedios de CMake.
+      - name: Preparar el sitio
+        run: |
+          mkdir -p sitio
+          cp build-wasm/index.html \
+             build-wasm/cheminator.js \
+             build-wasm/cheminator.wasm \
+             sitio/
+          ls -lh sitio/
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v6
+
+      - name: Subir el artefacto
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./sitio
+
+  desplegar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - name: Desplegar
+        id: despliegue
+        uses: actions/deploy-pages@v5

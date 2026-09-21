@@ -1,5 +1,7 @@
 # Cheminator
 
+**[▶ Probar la demo en el navegador](https://julianescord.github.io/cheminator/)** — sin instalar nada.
+
 Librería C++ y programa de consola para la nomenclatura de compuestos químicos inorgánicos en español (óxidos, peróxidos, anhídridos, ácidos hidrácidos y oxácidos, bases y sales oxisal), en los sistemas Stock y tradicional.
 
 Además de dar el nombre a partir de la fórmula, Cheminator puede **detectar automáticamente** a qué categoría pertenece un compuesto y **explicar su razonamiento paso a paso**, en vez de limitarse a devolver una respuesta.
@@ -68,6 +70,12 @@ cmake --install build --prefix /donde/instalar
 
 El mismo núcleo se compila para el navegador con Emscripten, sin servidor ni
 instalación: todo el análisis ocurre en la máquina de quien lo usa.
+
+La demo está publicada en
+**[julianescord.github.io/cheminator](https://julianescord.github.io/cheminator/)**,
+desplegada automáticamente desde este repositorio en cada push a `master`
+([`.github/workflows/pages.yml`](.github/workflows/pages.yml)). Para compilarla
+en local:
 
 ```bash
 source /ruta/a/emsdk/emsdk_env.sh
