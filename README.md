@@ -4,36 +4,49 @@ Programa de consola en C++ para practicar la nomenclatura de compuestos químico
 
 > Proyecto educativo en desarrollo. El menú principal y el flujo de óxidos funcionan; el resto de opciones (peróxidos, anhídridos, ácidos, bases, sales) están planificadas pero aún no implementadas.
 
-## Contenido
+## Estructura del proyecto
 
-- [`src/Cheminator.cpp`](src/Cheminator.cpp): menú principal interactivo con las distintas opciones de nomenclatura.
-- [`src/Chemin2.cpp`](src/Chemin2.cpp): prototipo independiente para el reconocimiento de elementos a partir de la fórmula (punto de partida para completar la lógica de `Cheminator.cpp`).
+```
+cheminator/
+├── include/          # Declaraciones (headers)
+│   ├── elementos.h
+│   └── menu.h
+├── src/              # Implementación
+│   ├── elementos.cpp # Reconocimiento de elementos a partir de su símbolo
+│   ├── menu.cpp       # Menú y flujo de cada opción de nomenclatura
+│   └── main.cpp       # Punto de entrada del programa
+├── Makefile
+└── README.md
+```
 
 ## Compilación
 
-Requiere un compilador de C++ (g++, clang++ o MSVC).
+Requiere un compilador de C++ (g++, clang++ o MSVC) compatible con C++17.
 
 ```bash
-g++ -Wall -o cheminator src/Cheminator.cpp
-./cheminator
+make        # compila el binario ./cheminator
+make run    # compila y ejecuta
+make clean  # elimina el binario
 ```
 
+También se puede compilar manualmente:
+
 ```bash
-g++ -Wall -o chemin2 src/Chemin2.cpp
-./chemin2
+g++ -std=c++17 -Wall -Wextra -Iinclude -o cheminator src/*.cpp
+./cheminator
 ```
 
 ## Estado / Roadmap
 
 - [x] Menú principal
 - [x] Flujo de entrada de fórmula para óxidos
-- [ ] Lógica de nomenclatura Stock real (actualmente no calcula el nombre, solo repite la fórmula)
+- [x] Reconocimiento básico de elementos (tabla en `elementos.cpp`, por ahora solo Hidrógeno)
+- [ ] Lógica de nomenclatura Stock completa para óxidos (subíndices, valencias)
 - [ ] Peróxidos
 - [ ] Anhídridos
 - [ ] Ácidos hidrácidos y oxácidos
 - [ ] Bases
 - [ ] Sales oxisal
-- [ ] Unificar `Chemin2.cpp` dentro del menú de `Cheminator.cpp`
 
 ## Licencia
 

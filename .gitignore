@@ -1,4 +1,5 @@
 # Binarios compilados
+cheminator
 *.exe
 *.out
 *.o
