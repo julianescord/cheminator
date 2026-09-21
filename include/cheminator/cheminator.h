@@ -32,6 +32,14 @@ typedef struct chem_resultado chem_resultado;
  * eso se consulta con chem_resultado_ok(). */
 chem_resultado *chem_nombrar(const char *formula);
 
+/* El camino inverso: a partir del nombre en espanol ("oxido de hierro (III)")
+ * obtiene la formula ("Fe2O3"). Tolera mayusculas, tildes y espacios de mas.
+ *
+ * Devuelve el mismo tipo de objeto que chem_nombrar() y se libera igual. La
+ * formula se consulta con chem_resultado_formula(), y la categoria, los pasos
+ * y el error con los mismos accesores. */
+chem_resultado *chem_formular(const char *nombre);
+
 /* Libera el objeto. Acepta NULL sin hacer nada. */
 void chem_resultado_liberar(chem_resultado *resultado);
 
@@ -40,6 +48,10 @@ int chem_resultado_ok(const chem_resultado *resultado);
 
 /* Nombre del compuesto ("oxido de Hierro (III)"). Cadena vacia si hubo error. */
 const char *chem_resultado_nombre(const chem_resultado *resultado);
+
+/* Formula obtenida al formular ("Fe2O3"). Cadena vacia si hubo error o si el
+ * objeto viene de chem_nombrar() en vez de chem_formular(). */
+const char *chem_resultado_formula(const chem_resultado *resultado);
 
 /* Categoria detectada ("oxido", "sal oxisal"...). Vacia si hubo error. */
 const char *chem_resultado_categoria(const chem_resultado *resultado);

@@ -46,6 +46,10 @@ struct InfoNoMetal {
 // Busca un no metal por su simbolo. Devuelve nullptr si no esta en la tabla.
 const InfoNoMetal *buscarNoMetal(std::string_view simbolo) noexcept;
 
+// La tabla completa, para recorrerla buscando por nombre en vez de por
+// simbolo, que es lo que necesita la formulacion inversa.
+std::span<const InfoNoMetal> todosLosNoMetales() noexcept;
+
 } // namespace cheminator
 
 #endif // CHEMINATOR_NO_METALES_HPP

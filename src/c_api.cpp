@@ -1,6 +1,7 @@
 #include "cheminator/cheminator.h"
 
 #include "cheminator/formula.hpp"
+#include "cheminator/formulacion.hpp"
 #include "cheminator/nomenclatura.hpp"
 
 #include <new>
@@ -21,6 +22,9 @@ namespace {
 struct ResultadoInterno {
 	bool ok = false;
 	std::string nombre;
+	// Se llena al formular (nombre -> formula) y queda vacia al nombrar, de
+	// modo que un mismo tipo opaco sirve para las dos direcciones.
+	std::string formula;
 	std::string categoria;
 	std::string error;
 	std::vector<std::string> pasos;
@@ -85,6 +89,45 @@ chem_resultado *chem_nombrar(const char *formula)
 	return salida;
 }
 
+chem_resultado *chem_formular(const char *nombre)
+{
+	chem_resultado *salida = new (std::nothrow) chem_resultado{};
+	if (salida == nullptr)
+	{
+		return nullptr;
+	}
+
+	try
+	{
+		const std::string texto = nombre == nullptr ? std::string{} : std::string{nombre};
+
+		const auto resultado = cheminator::formular(texto);
+		if (!resultado)
+		{
+			salida->datos.error = cheminator::mensajeError(resultado.error());
+			return salida;
+		}
+
+		const cheminator::Formulacion &formulacion = resultado.valor();
+		salida->datos.ok = true;
+		salida->datos.formula = formulacion.formula;
+		salida->datos.categoria = cheminator::nombreCategoria(formulacion.categoria);
+		salida->datos.pasos = formulacion.pasos;
+	}
+	catch (const std::bad_alloc &)
+	{
+		delete salida;
+		return nullptr;
+	}
+	catch (...)
+	{
+		salida->datos.ok = false;
+		salida->datos.error = "Error interno al procesar el nombre.";
+	}
+
+	return salida;
+}
+
 void chem_resultado_liberar(chem_resultado *resultado)
 {
 	delete resultado;
@@ -98,6 +141,11 @@ int chem_resultado_ok(const chem_resultado *resultado)
 const char *chem_resultado_nombre(const chem_resultado *resultado)
 {
 	return resultado == nullptr ? VACIA : resultado->datos.nombre.c_str();
+}
+
+const char *chem_resultado_formula(const chem_resultado *resultado)
+{
+	return resultado == nullptr ? VACIA : resultado->datos.formula.c_str();
 }
 
 const char *chem_resultado_categoria(const chem_resultado *resultado)

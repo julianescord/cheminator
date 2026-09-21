@@ -63,4 +63,9 @@ const InfoElemento *buscarElemento(std::string_view simbolo) noexcept
 	return nullptr;
 }
 
+std::span<const InfoElemento> todosLosElementos() noexcept
+{
+	return TABLA_ELEMENTOS;
+}
+
 } // namespace cheminator

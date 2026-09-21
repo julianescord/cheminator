@@ -27,6 +27,7 @@ add_library(cheminator
 	src/radicales.cpp
 	src/formula.cpp
 	src/nomenclatura.cpp
+	src/formulacion.cpp
 	src/c_api.cpp)
 
 add_library(cheminator::cheminator ALIAS cheminator)
@@ -85,12 +86,24 @@ if(EMSCRIPTEN)
 		# su propio codigo.
 		LINK_FLAGS "--bind -sMODULARIZE=1 -sEXPORT_NAME=crearCheminator -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1")
 
-	# La pagina de ejemplo se copia junto a los artefactos para poder servir
-	# el directorio de build tal cual.
-	add_custom_command(TARGET cheminator_wasm POST_BUILD
+	# La pagina de ejemplo se copia junto a los artefactos para poder servir el
+	# directorio de build tal cual.
+	#
+	# La copia es su propio target y depende del HTML, no un POST_BUILD del
+	# modulo: como POST_BUILD solo corre cuando el modulo se reenlaza, editar
+	# solo la pagina no actualizaba la copia y se servia una version vieja.
+	add_custom_command(
+		OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/index.html"
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			"${CMAKE_CURRENT_SOURCE_DIR}/wasm/demo.html"
-			"$<TARGET_FILE_DIR:cheminator_wasm>/index.html")
+			"${CMAKE_CURRENT_BINARY_DIR}/index.html"
+		DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/wasm/demo.html"
+		COMMENT "Copiando la pagina de ejemplo")
+
+	add_custom_target(cheminator_pagina ALL
+		DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/index.html")
+
+	add_dependencies(cheminator_wasm cheminator_pagina)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -106,7 +119,8 @@ if(CHEMINATOR_BUILD_TESTS)
 		tests/test_formula.cpp
 		tests/test_elementos.cpp
 		tests/test_nomenclatura.cpp
-		tests/test_deteccion.cpp)
+		tests/test_deteccion.cpp
+		tests/test_formulacion.cpp)
 
 	target_link_libraries(run_tests PRIVATE cheminator)
 	target_include_directories(run_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)

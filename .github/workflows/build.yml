@@ -51,12 +51,23 @@ jobs:
           cat > consumidor.c <<'FIN'
           #include <cheminator/cheminator.h>
           #include <stdio.h>
+          #include <string.h>
           int main(void) {
+              /* De la formula al nombre. */
               chem_resultado *r = chem_nombrar("Fe2O3");
               if (r == NULL) return 1;
               printf("%s -> %s\n", chem_resultado_categoria(r), chem_resultado_nombre(r));
-              int ok = chem_resultado_ok(r);
+              int ok = chem_resultado_ok(r) &&
+                       strcmp(chem_resultado_nombre(r), "oxido de Hierro (III)") == 0;
               chem_resultado_liberar(r);
+              if (!ok) return 1;
+
+              /* Y de vuelta, que es el camino inverso sobre el mismo tipo. */
+              chem_resultado *i = chem_formular("oxido de hierro (III)");
+              if (i == NULL) return 1;
+              printf("%s -> %s\n", chem_resultado_categoria(i), chem_resultado_formula(i));
+              ok = chem_resultado_ok(i) && strcmp(chem_resultado_formula(i), "Fe2O3") == 0;
+              chem_resultado_liberar(i);
               return ok ? 0 : 1;
           }
           FIN
@@ -83,11 +94,20 @@ jobs:
           cat > build-wasm/prueba.mjs <<'FIN'
           import crearCheminator from './cheminator.js';
           const Modulo = await crearCheminator();
+
           const resultado = Modulo.nombrar('Al2(SO4)3');
           if (!resultado.ok || resultado.nombre !== 'sulfato de Aluminio') {
               console.error('Resultado inesperado:', resultado.nombre, resultado.error);
               process.exit(1);
           }
           console.log(`v${Modulo.version()} ${resultado.categoria}: ${resultado.nombre}`);
+
+          // La direccion inversa, incluida la tolerancia a tildes.
+          const inverso = Modulo.formular('Óxido de Hierro (III)');
+          if (!inverso.ok || inverso.formula !== 'Fe2O3') {
+              console.error('Formulacion inesperada:', inverso.formula, inverso.error);
+              process.exit(1);
+          }
+          console.log(`${inverso.categoria}: ${inverso.formula}`);
           FIN
           node build-wasm/prueba.mjs

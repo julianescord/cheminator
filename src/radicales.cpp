@@ -69,4 +69,9 @@ const InfoRadical *buscarRadical(std::string_view formula) noexcept
 	return nullptr;
 }
 
+std::span<const InfoRadical> todosLosRadicales() noexcept
+{
+	return TABLA_RADICALES;
+}
+
 } // namespace cheminator

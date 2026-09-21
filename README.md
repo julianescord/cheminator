@@ -4,7 +4,7 @@
 
 Librería C++ y programa de consola para la nomenclatura de compuestos químicos inorgánicos en español (óxidos, peróxidos, anhídridos, ácidos hidrácidos y oxácidos, bases y sales oxisal), en los sistemas Stock y tradicional.
 
-Además de dar el nombre a partir de la fórmula, Cheminator puede **detectar automáticamente** a qué categoría pertenece un compuesto y **explicar su razonamiento paso a paso**, en vez de limitarse a devolver una respuesta.
+Funciona en **las dos direcciones**: de la fórmula al nombre y del nombre a la fórmula. Además **detecta automáticamente** a qué categoría pertenece un compuesto y **explica su razonamiento paso a paso**, en vez de limitarse a devolver una respuesta.
 
 > Proyecto educativo en desarrollo. El núcleo está separado como librería reutilizable (`libcheminator`); el programa de consola es solo uno de sus clientes.
 
@@ -21,7 +21,8 @@ cheminator/
 │   ├── oxacidos.hpp      # Formulas y nombres de acidos oxacidos conocidos
 │   ├── radicales.hpp     # Radicales (aniones poliatomicos) para sales
 │   ├── formula.hpp       # Parseo de formulas (incluye grupos entre parentesis)
-│   └── nomenclatura.hpp  # Reglas de nomenclatura, deteccion y explicacion
+│   ├── nomenclatura.hpp  # Reglas de nomenclatura, deteccion y explicacion
+│   └── formulacion.hpp   # El camino inverso: del nombre a la formula
 ├── src/                  # Implementacion de la libreria (sin entrada/salida)
 ├── apps/cli/             # Programa de consola: un cliente de la libreria
 │   ├── main.cpp
@@ -89,8 +90,13 @@ Desde JavaScript:
 import crearCheminator from './cheminator.js';
 
 const Cheminator = await crearCheminator();
+// De la formula al nombre...
 const resultado = Cheminator.nombrar('Al2(SO4)3');
 // { ok: true, nombre: "sulfato de Aluminio", categoria: "sal oxisal", pasos: [...] }
+
+// ...y del nombre a la formula.
+const inverso = Cheminator.formular('sulfato de Aluminio');
+// { ok: true, formula: "Al2(SO4)3", categoria: "sal oxisal", pasos: [...] }
 ```
 
 `pasos` llega como el vector de C++ enlazado por embind: se recorre con
@@ -123,6 +129,11 @@ if (chem_resultado_ok(r)) {
     chem_resultado_paso(r, 0);           /* primer paso del razonamiento */
 }
 chem_resultado_liberar(r);
+
+/* El camino inverso usa el mismo tipo y se libera igual. */
+chem_resultado *i = chem_formular("oxido de hierro (III)");
+chem_resultado_formula(i);               /* "Fe2O3" */
+chem_resultado_liberar(i);
 ```
 
 ### Desde C++
@@ -149,6 +160,27 @@ if (const auto formula = parsearFormula("Fe2O3"))
 }
 ```
 
+### Formulación inversa
+
+El camino contrario: del nombre a la fórmula. Tolera mayúsculas, tildes y
+espacios de más, así que `"Óxido de Hierro (III)"` y `"oxido de hierro (iii)"`
+dan lo mismo.
+
+```cpp
+#include <cheminator/formulacion.hpp>
+
+if (const auto resultado = cheminator::formular("sulfato de Aluminio"))
+{
+    resultado.valor().formula;    // "Al2(SO4)3"
+    resultado.valor().categoria;  // CategoriaCompuesto::SAL_OXISAL
+    resultado.valor().pasos;      // el razonamiento, linea por linea
+}
+```
+
+Cuando un metal admite varias valencias hay que indicarla con número romano:
+`"oxido de Hierro"` devuelve `FALTA_VALENCIA` en vez de adivinar entre `FeO` y
+`Fe2O3`.
+
 ## Ejemplo de uso
 
 ```
@@ -164,6 +196,23 @@ Razonamiento:
   4. Hierro tiene mas de una valencia -> se indica con numero romano (III).
 
 Nomenclatura del compuesto: oxido de Hierro (III)
+```
+
+Y en la dirección contraria:
+
+```
+=> 9
+Introduzca el nombre del compuesto (ej. oxido de Hierro (III), acido sulfurico): sulfato de Aluminio
+El nombre es: sulfato de Aluminio
+Tipo de compuesto: sal oxisal
+
+Razonamiento:
+  1. El radical "sulfato" es SO4 con carga 2-.
+  2. El metal es Aluminio (Al).
+  3. Aluminio tiene una unica valencia (3), asi que no hace falta indicarla.
+  4. Se cruzan la valencia del metal (3) y la carga del radical (2): Al2 y SO43.
+
+Formula del compuesto: Al2(SO4)3
 ```
 
 ## Alcance actual
@@ -184,7 +233,7 @@ Radicales para sales oxisal: carbonato, nitrito/nitrato, fosfito/fosfato, (hipo)
 - [x] Frontera `extern "C"` para embeber desde otros lenguajes
 - [x] Compilación a WebAssembly con página de ejemplo
 - [x] Pruebas automatizadas y CI (nativo, solo-librería, consumidor en C y WebAssembly)
-- [ ] Formulación inversa: escribir el nombre en español y obtener la fórmula
+- [x] Formulación inversa: escribir el nombre en español y obtener la fórmula
 - [ ] Ampliar tablas de metales, no metales y radicales
 - [ ] Compuestos de coordinación (`[Fe(CN)6]³⁻`), donde un modelo de grafo sí se justifica
 

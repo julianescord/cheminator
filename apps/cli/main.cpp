@@ -47,6 +47,7 @@ int main()
 			case 6: base(); break;
 			case 7: salOxisal(); break;
 			case 8: detectarAutomaticamente(); break;
+			case 9: formularDesdeNombre(); break;
 
 			case 0:
 				repetir = false;

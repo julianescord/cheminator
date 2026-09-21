@@ -13,6 +13,8 @@ void test_nomenclatura_oxacidos();
 void test_nomenclatura_bases();
 void test_nomenclatura_sales();
 void test_deteccion();
+void test_formulacion();
+void test_ida_y_vuelta();
 
 int main()
 {
@@ -27,6 +29,8 @@ int main()
 	test_nomenclatura_bases();
 	test_nomenclatura_sales();
 	test_deteccion();
+	test_formulacion();
+	test_ida_y_vuelta();
 
 	if (g_pruebasFallidas == 0)
 	{

@@ -75,4 +75,9 @@ const InfoOxacido *buscarOxacido(std::string_view simboloNoMetal, Subindice hidr
 	return nullptr;
 }
 
+std::span<const InfoOxacido> todosLosOxacidos() noexcept
+{
+	return TABLA_OXACIDOS;
+}
+
 } // namespace cheminator

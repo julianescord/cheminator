@@ -102,6 +102,21 @@
     margin-top: 10px;
     color: var(--tenue); font-size: 0.82rem;
   }
+  .modos {
+    display: flex; gap: 4px; margin-bottom: 14px;
+    padding: 3px; border-radius: 9px;
+    background: var(--fondo); border: 1px solid var(--borde);
+  }
+  .modos button {
+    flex: 1; padding: 7px 10px; border: 0; border-radius: 6px;
+    background: transparent; color: var(--tenue);
+    font: inherit; font-size: 0.87rem; cursor: pointer;
+  }
+  .modos button:hover { color: var(--texto); }
+  .modos button.activo {
+    background: var(--superficie); color: var(--texto); font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.07);
+  }
   .enlaces a { color: var(--acento); text-decoration: none; }
   .enlaces a:hover { text-decoration: underline; }
   .enlaces span { margin: 0 6px; }
@@ -111,9 +126,18 @@
 <main>
   <h1>Cheminator</h1>
   <p class="subtitulo">
-    Nomenclatura química inorgánica en español. Escriba una fórmula y el
-    programa deduce de qué tipo de compuesto se trata, cómo se llama y por qué.
+    Nomenclatura química inorgánica en español, en las dos direcciones: de la
+    fórmula al nombre y del nombre a la fórmula, explicando el porqué.
   </p>
+
+  <div class="modos" role="tablist" aria-label="Dirección">
+    <button type="button" id="modo-nombrar" role="tab" aria-selected="true" class="activo">
+      Fórmula → nombre
+    </button>
+    <button type="button" id="modo-formular" role="tab" aria-selected="false">
+      Nombre → fórmula
+    </button>
+  </div>
 
   <form class="entrada" id="formulario">
     <input id="formula" placeholder="Fe2O3" autocomplete="off" spellcheck="false" autofocus>
@@ -149,7 +173,31 @@ const $salida = document.getElementById('salida');
 const $pie = document.getElementById('pie');
 const $ejemplos = document.getElementById('ejemplos');
 
-const EJEMPLOS = ['Fe2O3', 'Na2O2', 'SO3', 'HCl', 'H2SO4', 'Ca(OH)2', 'Al2(SO4)3'];
+const $modoNombrar = document.getElementById('modo-nombrar');
+const $modoFormular = document.getElementById('modo-formular');
+
+// Cada direccion trae sus propios ejemplos, su marcador de posicion y la
+// funcion del modulo que le corresponde.
+const MODOS = {
+  nombrar: {
+    ejemplos: ['Fe2O3', 'Na2O2', 'SO3', 'HCl', 'H2SO4', 'Ca(OH)2', 'Al2(SO4)3'],
+    marcador: 'Fe2O3',
+    rotulo: 'Nombre',
+    llamar: (entrada) => Modulo.nombrar(entrada),
+    salida: (r) => r.nombre,
+  },
+  formular: {
+    ejemplos: ['oxido de Hierro (III)', 'peroxido de Sodio', 'anhidrido sulfurico',
+               'acido clorhidrico', 'acido sulfurico', 'hidroxido de Calcio',
+               'sulfato de Aluminio'],
+    marcador: 'óxido de hierro (III)',
+    rotulo: 'Fórmula',
+    llamar: (entrada) => Modulo.formular(entrada),
+    salida: (r) => r.formula,
+  },
+};
+
+let modoActual = 'nombrar';
 
 // `pasos` llega como el vector de C++ enlazado por embind, no como un array
 // de JavaScript: se recorre con size()/get().
@@ -172,20 +220,46 @@ const Modulo = await crearCheminator();
 $enviar.disabled = false;
 $pie.textContent = `Núcleo C++ v${Modulo.version()} compilado a WebAssembly. ` +
                    `Todo el análisis ocurre en este navegador: no se envía nada a ningún servidor.`;
-$salida.replaceChildren(texto('p', 'Escriba una fórmula para empezar.', 'subtitulo'));
+// Dibuja los ejemplos y el marcador que corresponden al modo activo.
+function aplicarModo(modo) {
+  modoActual = modo;
+  const config = MODOS[modo];
 
-for (const ejemplo of EJEMPLOS) {
-  const boton = texto('button', ejemplo);
-  boton.type = 'button';
-  boton.addEventListener('click', () => { $formula.value = ejemplo; analizar(); });
-  $ejemplos.append(boton);
+  $modoNombrar.classList.toggle('activo', modo === 'nombrar');
+  $modoFormular.classList.toggle('activo', modo === 'formular');
+  $modoNombrar.setAttribute('aria-selected', String(modo === 'nombrar'));
+  $modoFormular.setAttribute('aria-selected', String(modo === 'formular'));
+
+  $formula.placeholder = config.marcador;
+  $formula.value = '';
+
+  $ejemplos.replaceChildren();
+  for (const ejemplo of config.ejemplos) {
+    const boton = texto('button', ejemplo);
+    boton.type = 'button';
+    boton.addEventListener('click', () => { $formula.value = ejemplo; analizar(); });
+    $ejemplos.append(boton);
+  }
+
+  $salida.replaceChildren(texto(
+    'p',
+    modo === 'nombrar' ? 'Escriba una fórmula para empezar.' : 'Escriba un nombre para empezar.',
+    'subtitulo',
+  ));
+  $formula.focus();
 }
+
+$modoNombrar.addEventListener('click', () => aplicarModo('nombrar'));
+$modoFormular.addEventListener('click', () => aplicarModo('formular'));
+
+aplicarModo('nombrar');
 
 function analizar() {
   const entrada = $formula.value.trim();
   if (!entrada) return;
 
-  const resultado = Modulo.nombrar(entrada);
+  const config = MODOS[modoActual];
+  const resultado = config.llamar(entrada);
 
   if (!resultado.ok) {
     $salida.replaceChildren(texto('p', resultado.error, 'error'));
@@ -197,7 +271,7 @@ function analizar() {
 
   $salida.replaceChildren(
     texto('div', resultado.categoria, 'categoria'),
-    texto('div', resultado.nombre, 'nombre'),
+    texto('div', config.salida(resultado), 'nombre'),
     texto('div', 'Razonamiento', 'rotulo'),
     lista,
   );

@@ -45,6 +45,11 @@ struct InfoElemento {
 // Busca un metal por su simbolo. Devuelve nullptr si no esta en la tabla.
 const InfoElemento *buscarElemento(std::string_view simbolo) noexcept;
 
+// La tabla completa. Hace falta para recorrerla en la direccion contraria,
+// buscando por nombre en vez de por simbolo, que es lo que necesita la
+// formulacion inversa.
+std::span<const InfoElemento> todosLosElementos() noexcept;
+
 } // namespace cheminator
 
 #endif // CHEMINATOR_ELEMENTOS_HPP

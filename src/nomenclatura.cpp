@@ -1,5 +1,7 @@
 #include "cheminator/nomenclatura.hpp"
 
+#include "afijos.hpp"
+
 #include <array>
 #include <format>
 #include <optional>
@@ -44,34 +46,11 @@ std::string nombreStock(std::string_view tipo, const InfoElemento &elemento, Val
 	return std::format("{} de {} ({})", tipo, elemento.nombre, aRomano(valencia));
 }
 
-// Prefijo y sufijo tradicionales segun la posicion que ocupa la valencia
-// usada dentro de la lista ordenada de valencias del no metal.
-struct Afijos {
-	std::string_view prefijo;
-	std::string_view sufijo;
-};
-
-constexpr Afijos afijosTradicionales(int posicion, int totalValencias) noexcept
-{
-	if (totalValencias <= 1)
-	{
-		return {"", "ico"};
-	}
-	if (totalValencias == 2)
-	{
-		return posicion == 0 ? Afijos{"", "oso"} : Afijos{"", "ico"};
-	}
-	if (totalValencias == 3)
-	{
-		if (posicion == 0) return {"hipo", "oso"};
-		if (posicion == 1) return {"", "oso"};
-		return {"", "ico"};
-	}
-	if (posicion == 0) return {"hipo", "oso"};
-	if (posicion == 1) return {"", "oso"};
-	if (posicion == 2) return {"", "ico"};
-	return {"per", "ico"};
-}
+// Prefijo y sufijo tradicionales segun la posicion que ocupa la valencia usada
+// dentro de la lista ordenada de valencias del no metal. La regla vive en
+// afijos.hpp porque formulacion.cpp la necesita para invertirla.
+using detalle::Afijos;
+using detalle::afijosTradicionales;
 
 // Busca, entre las valencias del elemento, la que reproduce los subindices de
 // la formula segun la regla de intercambio. Comun a oxidos y anhidridos.

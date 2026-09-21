@@ -55,4 +55,9 @@ const InfoNoMetal *buscarNoMetal(std::string_view simbolo) noexcept
 	return nullptr;
 }
 
+std::span<const InfoNoMetal> todosLosNoMetales() noexcept
+{
+	return TABLA_NO_METALES;
+}
+
 } // namespace cheminator

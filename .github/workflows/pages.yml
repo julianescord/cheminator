@@ -54,6 +54,22 @@ jobs:
               }
               console.log(`ok  ${formula} -> ${r.nombre}`);
           }
+
+          // La demo ofrece las dos direcciones, asi que se comprueban las dos
+          // antes de publicar.
+          const inversos = [
+            ['Óxido de Hierro (III)', 'Fe2O3'],
+            ['sulfato de Aluminio',   'Al2(SO4)3'],
+          ];
+          for (const [nombre, esperada] of inversos) {
+              const r = Modulo.formular(nombre);
+              if (!r.ok || r.formula !== esperada) {
+                  console.error(`FALLA ${nombre}: se esperaba "${esperada}", se obtuvo "${r.formula ?? r.error}"`);
+                  process.exit(1);
+              }
+              console.log(`ok  ${nombre} -> ${r.formula}`);
+          }
+
           console.log(`Modulo v${Modulo.version()} verificado.`);
           FIN
           node build-wasm/verificar.mjs

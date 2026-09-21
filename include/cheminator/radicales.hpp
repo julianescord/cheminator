@@ -3,6 +3,7 @@
 
 #include "cheminator/tipos.hpp"
 
+#include <span>
 #include <string_view>
 
 namespace cheminator {
@@ -25,6 +26,10 @@ struct InfoRadical {
 
 // Busca un radical por su formula. Devuelve nullptr si no esta en la tabla.
 const InfoRadical *buscarRadical(std::string_view formula) noexcept;
+
+// La tabla completa, para recorrerla buscando por nombre en vez de por
+// formula, que es lo que necesita la formulacion inversa.
+std::span<const InfoRadical> todosLosRadicales() noexcept;
 
 } // namespace cheminator
 

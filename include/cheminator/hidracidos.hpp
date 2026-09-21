@@ -3,6 +3,7 @@
 
 #include "cheminator/tipos.hpp"
 
+#include <span>
 #include <string_view>
 
 namespace cheminator {
@@ -25,6 +26,10 @@ struct InfoHidracido {
 // Busca un no metal formador de hidracido. Devuelve nullptr si no forma uno
 // de los hidracidos comunes que cubre este programa.
 const InfoHidracido *buscarHidracido(std::string_view simbolo) noexcept;
+
+// La tabla completa, para recorrerla buscando por la raiz del nombre en vez de
+// por simbolo, que es lo que necesita la formulacion inversa.
+std::span<const InfoHidracido> todosLosHidracidos() noexcept;
 
 } // namespace cheminator
 

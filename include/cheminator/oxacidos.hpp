@@ -3,6 +3,7 @@
 
 #include "cheminator/tipos.hpp"
 
+#include <span>
 #include <string_view>
 
 namespace cheminator {
@@ -26,6 +27,10 @@ struct InfoOxacido {
 // Devuelve nullptr si no hay coincidencia.
 const InfoOxacido *buscarOxacido(std::string_view simboloNoMetal, Subindice hidrogenos, Subindice atomosNoMetal,
                                   Subindice oxigenos) noexcept;
+
+// La tabla completa, para recorrerla buscando por nombre en vez de por
+// formula, que es lo que necesita la formulacion inversa.
+std::span<const InfoOxacido> todosLosOxacidos() noexcept;
 
 } // namespace cheminator
 

@@ -49,4 +49,9 @@ const InfoHidracido *buscarHidracido(std::string_view simbolo) noexcept
 	return nullptr;
 }
 
+std::span<const InfoHidracido> todosLosHidracidos() noexcept
+{
+	return TABLA_HIDRACIDOS;
+}
+
 } // namespace cheminator

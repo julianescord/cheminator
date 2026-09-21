@@ -21,6 +21,10 @@ void salOxisal();
 // muestra el razonamiento paso a paso ademas del nombre.
 void detectarAutomaticamente();
 
+// El camino inverso: pide el nombre en espanol y muestra la formula, con el
+// razonamiento paso a paso.
+void formularDesdeNombre();
+
 } // namespace cheminator::cli
 
 #endif // CHEMINATOR_CLI_MENU_HPP
