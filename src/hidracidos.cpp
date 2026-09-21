@@ -1,30 +1,52 @@
 #include "cheminator/hidracidos.hpp"
-#include <cstring>
 
-// No metales que forman ácidos hidrácidos comunes en un curso de
-// nomenclatura inorgánica básica: halógenos (valencia -1, un H) y algunos
-// calcógenos (valencia -2, dos H). El nombre del ácido es "acido <nombre
-// sin sufijo>hidrico", p.ej. "acido clorhidrico", "acido sulfhidrico".
-static const InfoHidracido TABLA_HIDRACIDOS[] = {
-	{"F",  "fluor",   1},
-	{"Cl", "clor",    1},
-	{"Br", "brom",    1},
-	{"I",  "iod",     1},
-	{"S",  "sulf",    2},
-	{"Se", "selen",   2},
-	{"Te", "telur",   2},
+#include "validacion_tablas.hpp"
+
+#include <array>
+
+namespace cheminator {
+namespace {
+
+// Ningun hidracido comun lleva mas hidrogenos que esto; sirve de cota para
+// la verificacion en compilacion.
+constexpr int MAX_HIDROGENOS = 3;
+
+constexpr InfoHidracido hidracido(std::string_view simbolo, std::string_view raiz, int hidrogenos)
+{
+	return InfoHidracido{simbolo, raiz, Subindice{hidrogenos}};
+}
+
+// Halogenos (valencia -1, un hidrogeno) y calcogenos (valencia -2, dos), que
+// son los hidracidos que se ven en un curso de nomenclatura basica.
+constexpr std::array TABLA_HIDRACIDOS = {
+	hidracido("F", "fluor", 1),
+	hidracido("Cl", "clor", 1),
+	hidracido("Br", "brom", 1),
+	hidracido("I", "iod", 1),
+	hidracido("S", "sulf", 2),
+	hidracido("Se", "selen", 2),
+	hidracido("Te", "telur", 2),
 };
 
-static constexpr int CANTIDAD_HIDRACIDOS = sizeof(TABLA_HIDRACIDOS) / sizeof(TABLA_HIDRACIDOS[0]);
+static_assert(detalle::clavesUnicas(TABLA_HIDRACIDOS, [](const InfoHidracido &h) { return h.simbolo; }),
+              "Hay un simbolo repetido en la tabla de hidracidos.");
 
-const InfoHidracido *buscarHidracido(const char simbolo[])
+static_assert(detalle::cantidadesEnRango(
+                  TABLA_HIDRACIDOS, [](const InfoHidracido &h) { return h.hidrogenos.valor(); }, MAX_HIDROGENOS),
+              "Algun hidracido declara una cantidad de hidrogenos fuera de rango.");
+
+} // namespace
+
+const InfoHidracido *buscarHidracido(std::string_view simbolo) noexcept
 {
-	for (int i = 0; i < CANTIDAD_HIDRACIDOS; i++)
+	for (const InfoHidracido &hidracido : TABLA_HIDRACIDOS)
 	{
-		if (std::strcmp(simbolo, TABLA_HIDRACIDOS[i].simbolo) == 0)
+		if (hidracido.simbolo == simbolo)
 		{
-			return &TABLA_HIDRACIDOS[i];
+			return &hidracido;
 		}
 	}
 	return nullptr;
 }
+
+} // namespace cheminator

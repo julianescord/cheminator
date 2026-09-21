@@ -1,120 +1,157 @@
 #include "cheminator/formula.hpp"
+
+#include <algorithm>
 #include <cctype>
-#include <cstring>
 
-ResultadoParseo parsearFormula(const char formula[], FormulaParseada &resultado)
+namespace cheminator {
+namespace {
+
+constexpr bool esMayuscula(char c) noexcept { return c >= 'A' && c <= 'Z'; }
+constexpr bool esMinuscula(char c) noexcept { return c >= 'a' && c <= 'z'; }
+constexpr bool esDigito(char c) noexcept { return c >= '0' && c <= '9'; }
+
+// Lee los digitos que siguen a la posicion dada y devuelve el subindice que
+// representan. Sin digitos, el subindice es 1, como en la notacion quimica.
+struct LecturaSubindice {
+	Subindice subindice;
+	std::size_t siguiente;
+	bool valido;
+};
+
+LecturaSubindice leerSubindice(std::string_view texto, std::size_t desde)
 {
-	resultado.cantidadComponentes = 0;
-
-	if (formula == nullptr || formula[0] == '\0')
+	int valor = 0;
+	std::size_t i = desde;
+	while (i < texto.size() && esDigito(texto[i]))
 	{
-		return ResultadoParseo::FORMULA_VACIA;
+		valor = valor * 10 + (texto[i] - '0');
+		++i;
 	}
 
-	int i = 0;
-	int longitud = static_cast<int>(std::strlen(formula));
-
-	while (i < longitud)
+	if (i == desde)
 	{
-		char simbolo[TAM_MAX];
-
-		if (formula[i] == '(')
-		{
-			// Grupo entre paréntesis (p.ej. "(OH)", "(SO4)"): se copia su
-			// contenido literal como si fuera un único símbolo, para que la
-			// nomenclatura de bases/sales lo reconozca como un radical.
-			i++; // saltar '('
-			int j = 0;
-			bool huboContenido = false;
-
-			while (i < longitud && formula[i] != ')')
-			{
-				if (formula[i] == '(' || j >= TAM_MAX - 1)
-				{
-					// No se soportan paréntesis anidados ni contenido excesivo.
-					return ResultadoParseo::GRUPO_MAL_FORMADO;
-				}
-				simbolo[j++] = formula[i++];
-				huboContenido = true;
-			}
-
-			if (i >= longitud || formula[i] != ')' || !huboContenido)
-			{
-				// Se llegó al final sin encontrar ')', o el grupo estaba vacío "()".
-				return ResultadoParseo::GRUPO_MAL_FORMADO;
-			}
-			i++; // saltar ')'
-			simbolo[j] = '\0';
-		}
-		else if (std::isupper(static_cast<unsigned char>(formula[i])))
-		{
-			// Un símbolo válido empieza en mayúscula y puede tener una segunda
-			// letra minúscula (p.ej. "Fe", "Na"), como en la notación química real.
-			int j = 0;
-			simbolo[j++] = formula[i++];
-
-			if (i < longitud && std::islower(static_cast<unsigned char>(formula[i])))
-			{
-				simbolo[j++] = formula[i++];
-			}
-			simbolo[j] = '\0';
-		}
-		else
-		{
-			return ResultadoParseo::SIMBOLO_INVALIDO;
-		}
-
-		if (resultado.cantidadComponentes >= MAX_COMPONENTES)
-		{
-			return ResultadoParseo::DEMASIADOS_COMPONENTES;
-		}
-
-		// Subíndice: uno o más dígitos consecutivos; si no hay dígitos, es 1.
-		// Aplica tanto a un símbolo simple como al subíndice tras un grupo
-		// entre paréntesis (p.ej. el "2" de "(OH)2").
-		int subindice = 0;
-		int digitos = 0;
-		while (i < longitud && std::isdigit(static_cast<unsigned char>(formula[i])))
-		{
-			subindice = subindice * 10 + (formula[i] - '0');
-			i++;
-			digitos++;
-		}
-
-		if (digitos == 0)
-		{
-			subindice = 1;
-		}
-		else if (subindice == 0)
-		{
-			// Se escribieron dígitos pero el valor es 0 (p.ej. "H0"), inválido.
-			return ResultadoParseo::SUBINDICE_INVALIDO;
-		}
-
-		std::strcpy(resultado.componentes[resultado.cantidadComponentes].simbolo, simbolo);
-		resultado.componentes[resultado.cantidadComponentes].subindice = subindice;
-		resultado.cantidadComponentes++;
+		return {Subindice{1}, i, true};
 	}
-
-	return ResultadoParseo::OK;
+	// Se escribieron digitos pero suman cero ("H0"), que no es una formula valida.
+	return {Subindice{valor}, i, valor > 0};
 }
 
-const char *mensajeError(ResultadoParseo resultado)
+} // namespace
+
+std::string_view mensajeError(ErrorFormula error) noexcept
 {
-	switch (resultado)
+	switch (error)
 	{
-		case ResultadoParseo::OK:
-			return "Sin errores.";
-		case ResultadoParseo::FORMULA_VACIA:
+		case ErrorFormula::VACIA:
 			return "La formula esta vacia.";
-		case ResultadoParseo::SIMBOLO_INVALIDO:
+		case ErrorFormula::SIMBOLO_INVALIDO:
 			return "La formula contiene un simbolo invalido (debe iniciar con mayuscula, ej. \"Fe2O3\").";
-		case ResultadoParseo::SUBINDICE_INVALIDO:
+		case ErrorFormula::SUBINDICE_INVALIDO:
 			return "La formula contiene un subindice invalido.";
-		case ResultadoParseo::DEMASIADOS_COMPONENTES:
+		case ErrorFormula::DEMASIADOS_COMPONENTES:
 			return "La formula tiene mas elementos distintos de los soportados.";
-		case ResultadoParseo::GRUPO_MAL_FORMADO:
+		case ErrorFormula::GRUPO_MAL_FORMADO:
 			return "La formula tiene un grupo entre parentesis mal formado (sin cerrar, vacio o anidado).";
 	}
 	return "Error desconocido.";
 }
+
+const ComponenteFormula *Formula::componente(std::string_view simbolo) const noexcept
+{
+	const auto it = std::find_if(componentes_.begin(), componentes_.end(),
+	                              [simbolo](const ComponenteFormula &c) { return c.simbolo == simbolo; });
+	return it == componentes_.end() ? nullptr : &*it;
+}
+
+const ComponenteFormula *Formula::unicoDistintoDe(std::initializer_list<std::string_view> simbolos) const noexcept
+{
+	const ComponenteFormula *encontrado = nullptr;
+
+	for (const ComponenteFormula &c : componentes_)
+	{
+		const bool excluido = std::find(simbolos.begin(), simbolos.end(), std::string_view{c.simbolo}) != simbolos.end();
+		if (excluido)
+		{
+			continue;
+		}
+		if (encontrado != nullptr)
+		{
+			return nullptr; // hay mas de uno
+		}
+		encontrado = &c;
+	}
+
+	return encontrado;
+}
+
+Resultado<Formula, ErrorFormula> parsearFormula(std::string_view texto)
+{
+	if (texto.empty())
+	{
+		return ErrorFormula::VACIA;
+	}
+
+	std::vector<ComponenteFormula> componentes;
+	std::size_t i = 0;
+
+	while (i < texto.size())
+	{
+		std::string simbolo;
+
+		if (texto[i] == '(')
+		{
+			// Grupo entre parentesis ("(OH)", "(SO4)"): su contenido literal
+			// pasa a ser el simbolo de un unico componente, que es como la
+			// nomenclatura de bases y sales trata a un radical.
+			++i;
+			const std::size_t inicio = i;
+			while (i < texto.size() && texto[i] != ')')
+			{
+				if (texto[i] == '(')
+				{
+					return ErrorFormula::GRUPO_MAL_FORMADO; // no se admite anidamiento
+				}
+				++i;
+			}
+			if (i >= texto.size() || i == inicio)
+			{
+				return ErrorFormula::GRUPO_MAL_FORMADO; // sin cerrar, o vacio
+			}
+			simbolo.assign(texto.substr(inicio, i - inicio));
+			++i; // saltar ')'
+		}
+		else if (esMayuscula(texto[i]))
+		{
+			// Un simbolo empieza en mayuscula y puede llevar una segunda
+			// letra minuscula ("Fe", "Na"), como en la notacion real.
+			const std::size_t inicio = i;
+			++i;
+			if (i < texto.size() && esMinuscula(texto[i]))
+			{
+				++i;
+			}
+			simbolo.assign(texto.substr(inicio, i - inicio));
+		}
+		else
+		{
+			return ErrorFormula::SIMBOLO_INVALIDO;
+		}
+
+		const LecturaSubindice lectura = leerSubindice(texto, i);
+		if (!lectura.valido)
+		{
+			return ErrorFormula::SUBINDICE_INVALIDO;
+		}
+		i = lectura.siguiente;
+
+		if (componentes.size() >= MAX_COMPONENTES)
+		{
+			return ErrorFormula::DEMASIADOS_COMPONENTES;
+		}
+		componentes.push_back(ComponenteFormula{std::move(simbolo), lectura.subindice});
+	}
+
+	return Formula{std::move(componentes)};
+}
+
+} // namespace cheminator

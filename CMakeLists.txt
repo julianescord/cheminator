@@ -71,6 +71,7 @@ if(CHEMINATOR_BUILD_TESTS)
 
 	add_executable(run_tests
 		tests/main_tests.cpp
+		tests/test_tipos.cpp
 		tests/test_formula.cpp
 		tests/test_elementos.cpp
 		tests/test_nomenclatura.cpp

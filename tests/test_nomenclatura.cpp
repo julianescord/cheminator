@@ -1,313 +1,206 @@
 #include "cheminator/formula.hpp"
 #include "cheminator/nomenclatura.hpp"
 #include "test_runner.h"
-#include <cstring>
 
-static void verificarOxido(const char *formulaTexto, const char *esperado)
+using namespace cheminator;
+
+namespace {
+
+using Nombrador = ResultadoNomenclatura (*)(const Formula &);
+
+// Comprueba que una formula recibe el nombre esperado con el nombrador dado.
+void verificar(Nombrador nombrar, std::string_view texto, std::string_view nombreEsperado)
 {
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
+	const auto analizada = parsearFormula(texto);
+	ASSERT_TRUE(analizada.ok());
+	if (!analizada.ok())
+	{
+		return;
+	}
 
-	char resultado[TAM_MAX];
-	ResultadoNomenclatura rn = nomenclaturaStockOxido(f, resultado);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
+	const auto resultado = nombrar(analizada.valor());
+	ASSERT_TRUE(resultado.ok());
+	if (!resultado.ok())
+	{
+		std::fprintf(stderr, "  (al nombrar \"%.*s\")\n", static_cast<int>(texto.size()), texto.data());
+		return;
+	}
+
+	ASSERT_EQ_STR(resultado.valor().nombre, nombreEsperado);
+	// Todo nombre correcto viene acompanado de su razonamiento.
+	ASSERT_TRUE(!resultado.valor().pasos.empty());
 }
 
-static void verificarPeroxido(const char *formulaTexto, const char *esperado)
+void verificarError(Nombrador nombrar, std::string_view texto, ErrorNomenclatura esperado)
 {
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
+	const auto analizada = parsearFormula(texto);
+	ASSERT_TRUE(analizada.ok());
+	if (!analizada.ok())
+	{
+		return;
+	}
 
-	char resultado[TAM_MAX];
-	ResultadoNomenclatura rn = nomenclaturaStockPeroxido(f, resultado);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
+	const auto resultado = nombrar(analizada.valor());
+	ASSERT_TRUE(!resultado.ok());
+	if (!resultado.ok() && resultado.error() != esperado)
+	{
+		const std::string_view obtenido = mensajeError(resultado.error());
+		std::fprintf(stderr, "FALLO: \"%.*s\" dio el error \"%.*s\", que no es el esperado.\n",
+		             static_cast<int>(texto.size()), texto.data(), static_cast<int>(obtenido.size()),
+		             obtenido.data());
+		g_pruebasFallidas++;
+	}
 }
 
-static void verificarAnhidrido(const char *formulaTexto, const char *esperado)
+} // namespace
+
+void test_nomenclatura_oxidos()
 {
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
+	// Metales de una sola valencia: sin numero romano.
+	verificar(nombrarOxido, "Na2O", "oxido de Sodio");
+	verificar(nombrarOxido, "CaO", "oxido de Calcio");
+	verificar(nombrarOxido, "Al2O3", "oxido de Aluminio");
 
-	char resultado[TAM_MAX];
-	ResultadoNomenclatura rn = nomenclaturaTradicionalAnhidrido(f, resultado);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
-}
+	// Metales de valencia multiple: con numero romano.
+	verificar(nombrarOxido, "FeO", "oxido de Hierro (II)");
+	verificar(nombrarOxido, "Fe2O3", "oxido de Hierro (III)");
+	verificar(nombrarOxido, "CuO", "oxido de Cobre (II)");
+	verificar(nombrarOxido, "Cu2O", "oxido de Cobre (I)");
+	verificar(nombrarOxido, "PbO2", "oxido de Plomo (IV)");
 
-static void verificarHidracido(const char *formulaTexto, const char *esperado)
-{
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
-
-	char resultado[TAM_MAX];
-	ResultadoNomenclatura rn = nomenclaturaTradicionalHidracido(f, resultado);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
-}
-
-static void verificarOxacido(const char *formulaTexto, const char *esperado)
-{
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
-
-	char resultado[TAM_MAX];
-	ResultadoNomenclatura rn = nomenclaturaTradicionalOxacido(f, resultado);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
-}
-
-static void verificarBase(const char *formulaTexto, const char *esperado)
-{
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
-
-	char resultado[TAM_MAX];
-	ResultadoNomenclatura rn = nomenclaturaStockBase(f, resultado);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
-}
-
-static void verificarSal(const char *formulaTexto, const char *esperado)
-{
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
-
-	char resultado[TAM_MAX];
-	ResultadoNomenclatura rn = nomenclaturaTradicionalSal(f, resultado);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
-}
-
-void test_nomenclatura()
-{
-	// Metales con una sola valencia: sin número romano.
-	verificarOxido("Na2O", "oxido de Sodio");
-	verificarOxido("CaO", "oxido de Calcio");
-	verificarOxido("Al2O3", "oxido de Aluminio");
-
-	// Metales con valencia múltiple: con número romano.
-	verificarOxido("FeO", "oxido de Hierro (II)");
-	verificarOxido("Fe2O3", "oxido de Hierro (III)");
-	verificarOxido("CuO", "oxido de Cobre (II)");
-	verificarOxido("Cu2O", "oxido de Cobre (I)");
-	verificarOxido("PbO2", "oxido de Plomo (IV)");
-
-	// Casos de error.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-
-	parsearFormula("NaCl", f); // no es un óxido (no tiene O)
-	ASSERT_TRUE(nomenclaturaStockOxido(f, resultado) == ResultadoNomenclatura::NO_ES_OXIDO);
-
-	parsearFormula("XxO", f); // elemento inexistente
-	ASSERT_TRUE(nomenclaturaStockOxido(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
-
-	parsearFormula("Fe5O2", f); // proporción que no corresponde a ninguna valencia de Fe
-	ASSERT_TRUE(nomenclaturaStockOxido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+	verificarError(nombrarOxido, "NaCl", ErrorNomenclatura::NO_ES_OXIDO);
+	verificarError(nombrarOxido, "XxO", ErrorNomenclatura::ELEMENTO_DESCONOCIDO);
+	verificarError(nombrarOxido, "Fe5O2", ErrorNomenclatura::VALENCIA_NO_DETERMINADA);
 }
 
 void test_nomenclatura_peroxidos()
 {
-	// Metales de valencia 1: el grupo peroxo (O2) no se reduce, subíndices 2:2.
-	verificarPeroxido("Na2O2", "peroxido de Sodio");
-	verificarPeroxido("H2O2", "peroxido de Hidrogeno");
-	verificarPeroxido("K2O2", "peroxido de Potasio");
+	// Metales de valencia 1: el grupo peroxo no se reduce, subindices 2:2.
+	verificar(nombrarPeroxido, "Na2O2", "peroxido de Sodio");
+	verificar(nombrarPeroxido, "H2O2", "peroxido de Hidrogeno");
+	verificar(nombrarPeroxido, "K2O2", "peroxido de Potasio");
 
-	// Metales de valencia 2: subíndices 1:2.
-	verificarPeroxido("CaO2", "peroxido de Calcio");
+	// Metales de valencia 2: subindices 1:2.
+	verificar(nombrarPeroxido, "CaO2", "peroxido de Calcio");
 
-	// Cobre: ambas valencias (I y II) dan peróxidos válidos con distinta forma.
-	verificarPeroxido("Cu2O2", "peroxido de Cobre");
-	verificarPeroxido("CuO2", "peroxido de Cobre");
+	// El cobre forma peroxido con cualquiera de sus dos valencias.
+	verificar(nombrarPeroxido, "Cu2O2", "peroxido de Cobre");
+	verificar(nombrarPeroxido, "CuO2", "peroxido de Cobre");
 
-	// Casos de error.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-
-	parsearFormula("NaCl", f); // no tiene oxigeno
-	ASSERT_TRUE(nomenclaturaStockPeroxido(f, resultado) == ResultadoNomenclatura::NO_ES_PEROXIDO);
-
-	parsearFormula("CaO", f); // es oxido normal, no peroxido (proporcion 1:1 no es 1:2)
-	ASSERT_TRUE(nomenclaturaStockPeroxido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
-
-	parsearFormula("XxO2", f); // elemento inexistente
-	ASSERT_TRUE(nomenclaturaStockPeroxido(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
+	verificarError(nombrarPeroxido, "NaCl", ErrorNomenclatura::NO_ES_PEROXIDO);
+	verificarError(nombrarPeroxido, "CaO", ErrorNomenclatura::VALENCIA_NO_DETERMINADA);
+	verificarError(nombrarPeroxido, "XxO2", ErrorNomenclatura::ELEMENTO_DESCONOCIDO);
 }
 
 void test_nomenclatura_anhidridos()
 {
-	// No metal con 2 valencias: -oso (menor) / -ico (mayor).
-	verificarAnhidrido("CO2", "anhidrido carbonico"); // C solo tiene valencia 4 en la tabla -> unica opcion es -ico
-	verificarAnhidrido("P2O3", "anhidrido fosforoso");
-	verificarAnhidrido("P2O5", "anhidrido fosforico");
+	verificar(nombrarAnhidrido, "CO2", "anhidrido carbonico");
+	verificar(nombrarAnhidrido, "P2O3", "anhidrido fosforoso");
+	verificar(nombrarAnhidrido, "P2O5", "anhidrido fosforico");
 
-	// No metal con 3 valencias: hipo-...-oso / -oso / -ico.
-	verificarAnhidrido("N2O", "anhidrido hiponitroso");
-	verificarAnhidrido("N2O3", "anhidrido nitroso");
-	verificarAnhidrido("N2O5", "anhidrido nitrico");
-	verificarAnhidrido("SO2", "anhidrido sulfuroso");
-	verificarAnhidrido("SO3", "anhidrido sulfurico");
+	// Tres valencias: hipo-/-oso, -oso, -ico.
+	verificar(nombrarAnhidrido, "N2O", "anhidrido hiponitroso");
+	verificar(nombrarAnhidrido, "N2O3", "anhidrido nitroso");
+	verificar(nombrarAnhidrido, "N2O5", "anhidrido nitrico");
+	verificar(nombrarAnhidrido, "SO2", "anhidrido sulfuroso");
+	verificar(nombrarAnhidrido, "SO3", "anhidrido sulfurico");
 
-	// No metal con 4 valencias: hipo-...-oso / -oso / -ico / per-...-ico.
-	verificarAnhidrido("Cl2O", "anhidrido hipocloroso");
-	verificarAnhidrido("Cl2O3", "anhidrido cloroso");
-	verificarAnhidrido("Cl2O5", "anhidrido clorico");
-	verificarAnhidrido("Cl2O7", "anhidrido perclorico");
+	// Cuatro valencias: se suma per-/-ico.
+	verificar(nombrarAnhidrido, "Cl2O", "anhidrido hipocloroso");
+	verificar(nombrarAnhidrido, "Cl2O3", "anhidrido cloroso");
+	verificar(nombrarAnhidrido, "Cl2O5", "anhidrido clorico");
+	verificar(nombrarAnhidrido, "Cl2O7", "anhidrido perclorico");
 
-	// Casos de error.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-
-	parsearFormula("NaCl", f); // no tiene oxigeno
-	ASSERT_TRUE(nomenclaturaTradicionalAnhidrido(f, resultado) == ResultadoNomenclatura::NO_ES_ANHIDRIDO);
-
-	parsearFormula("FeO", f); // Fe es metal, no esta en la tabla de no metales
-	ASSERT_TRUE(nomenclaturaTradicionalAnhidrido(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
-
-	parsearFormula("NO", f); // N valencia 2 no esta en la tabla de valencias de anhidridos
-	ASSERT_TRUE(nomenclaturaTradicionalAnhidrido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+	verificarError(nombrarAnhidrido, "NaCl", ErrorNomenclatura::NO_ES_ANHIDRIDO);
+	verificarError(nombrarAnhidrido, "FeO", ErrorNomenclatura::ELEMENTO_DESCONOCIDO);
+	// El nitrogeno con valencia 2 (NO) no esta tabulado a proposito.
+	verificarError(nombrarAnhidrido, "NO", ErrorNomenclatura::VALENCIA_NO_DETERMINADA);
 }
 
 void test_nomenclatura_hidracidos()
 {
-	// Halogenos: un solo H (valencia -1 como anion).
-	verificarHidracido("HCl", "acido clorhidrico");
-	verificarHidracido("HF", "acido fluorhidrico");
-	verificarHidracido("HBr", "acido bromhidrico");
-	verificarHidracido("HI", "acido iodhidrico");
+	verificar(nombrarHidracido, "HCl", "acido clorhidrico");
+	verificar(nombrarHidracido, "HF", "acido fluorhidrico");
+	verificar(nombrarHidracido, "HBr", "acido bromhidrico");
+	verificar(nombrarHidracido, "HI", "acido iodhidrico");
 
-	// Calcogenos: dos H (valencia -2 como anion).
-	verificarHidracido("H2S", "acido sulfhidrico");
-	verificarHidracido("H2Se", "acido selenhidrico");
-	verificarHidracido("H2Te", "acido telurhidrico");
+	verificar(nombrarHidracido, "H2S", "acido sulfhidrico");
+	verificar(nombrarHidracido, "H2Se", "acido selenhidrico");
+	verificar(nombrarHidracido, "H2Te", "acido telurhidrico");
 
-	// Casos de error.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-
-	parsearFormula("NaCl", f); // no tiene hidrogeno
-	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::NO_ES_HIDRACIDO);
-
-	parsearFormula("H2O", f); // O no forma hidracido comun en esta tabla
-	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
-
-	parsearFormula("H3S", f); // proporcion incorrecta (S deberia llevar 2 H, no 3)
-	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::NO_ES_HIDRACIDO);
-
-	parsearFormula("HCl2", f); // proporcion incorrecta (Cl deberia tener subindice 1)
-	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::NO_ES_HIDRACIDO);
+	verificarError(nombrarHidracido, "NaCl", ErrorNomenclatura::NO_ES_HIDRACIDO);
+	verificarError(nombrarHidracido, "H2O", ErrorNomenclatura::ELEMENTO_DESCONOCIDO);
+	verificarError(nombrarHidracido, "H3S", ErrorNomenclatura::NO_ES_HIDRACIDO);
+	verificarError(nombrarHidracido, "HCl2", ErrorNomenclatura::NO_ES_HIDRACIDO);
 }
 
 void test_nomenclatura_oxacidos()
 {
-	verificarOxacido("H2SO4", "acido sulfurico");
-	verificarOxacido("H2SO3", "acido sulfuroso");
-	verificarOxacido("HNO3", "acido nitrico");
-	verificarOxacido("HNO2", "acido nitroso");
-	verificarOxacido("H2CO3", "acido carbonico");
-	verificarOxacido("HClO", "acido hipocloroso");
-	verificarOxacido("HClO4", "acido perclorico");
-	verificarOxacido("HBrO3", "acido bromico");
-	verificarOxacido("HIO2", "acido iodoso");
+	verificar(nombrarOxacido, "H2SO4", "acido sulfurico");
+	verificar(nombrarOxacido, "H2SO3", "acido sulfuroso");
+	verificar(nombrarOxacido, "HNO3", "acido nitrico");
+	verificar(nombrarOxacido, "HNO2", "acido nitroso");
+	verificar(nombrarOxacido, "H2CO3", "acido carbonico");
+	verificar(nombrarOxacido, "HClO", "acido hipocloroso");
+	verificar(nombrarOxacido, "HClO4", "acido perclorico");
+	verificar(nombrarOxacido, "HBrO3", "acido bromico");
+	verificar(nombrarOxacido, "HIO2", "acido iodoso");
 
-	// Caso especial: el fosforo no sigue la regla simple de intercambio de
-	// valencias (H3PO3/H3PO4, no HPO2/HPO3), justo el motivo de tabular las
-	// formulas en vez de derivarlas aritmeticamente.
-	verificarOxacido("H3PO3", "acido fosforoso");
-	verificarOxacido("H3PO4", "acido fosforico");
+	// El fosforo no sigue la regla simple de intercambio (H3PO3/H3PO4, no
+	// HPO2/HPO3): por eso los oxacidos estan tabulados y no derivados.
+	verificar(nombrarOxacido, "H3PO3", "acido fosforoso");
+	verificar(nombrarOxacido, "H3PO4", "acido fosforico");
 
-	// Casos de error.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-
-	parsearFormula("HCl", f); // solo 2 componentes, no es oxacido
-	ASSERT_TRUE(nomenclaturaTradicionalOxacido(f, resultado) == ResultadoNomenclatura::NO_ES_OXACIDO);
-
-	parsearFormula("NaClO3", f); // Na no es H
-	ASSERT_TRUE(nomenclaturaTradicionalOxacido(f, resultado) == ResultadoNomenclatura::NO_ES_OXACIDO);
-
-	parsearFormula("H4SO4", f); // proporcion que no corresponde a ningun oxacido tabulado de S
-	ASSERT_TRUE(nomenclaturaTradicionalOxacido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+	verificarError(nombrarOxacido, "HCl", ErrorNomenclatura::NO_ES_OXACIDO);
+	// Sin hidrogeno no hay oxacido, por mas que el resto encaje.
+	verificarError(nombrarOxacido, "NaClO3", ErrorNomenclatura::NO_ES_OXACIDO);
+	verificarError(nombrarOxacido, "H4SO4", ErrorNomenclatura::VALENCIA_NO_DETERMINADA);
 }
 
 void test_nomenclatura_bases()
 {
-	// Forma con parentesis (2 componentes tras el parseo).
-	verificarBase("Ca(OH)2", "hidroxido de Calcio");
-	verificarBase("Al(OH)3", "hidroxido de Aluminio");
-	verificarBase("Fe(OH)2", "hidroxido de Hierro (II)");
-	verificarBase("Fe(OH)3", "hidroxido de Hierro (III)");
-	verificarBase("Cu(OH)2", "hidroxido de Cobre (II)");
+	// Forma con parentesis.
+	verificar(nombrarBase, "Ca(OH)2", "hidroxido de Calcio");
+	verificar(nombrarBase, "Al(OH)3", "hidroxido de Aluminio");
+	verificar(nombrarBase, "Fe(OH)2", "hidroxido de Hierro (II)");
+	verificar(nombrarBase, "Fe(OH)3", "hidroxido de Hierro (III)");
+	verificar(nombrarBase, "Cu(OH)2", "hidroxido de Cobre (II)");
 
-	// Forma sin parentesis para un solo grupo OH (3 componentes tras el
-	// parseo: metal + O + H con el mismo subindice), que debe normalizarse
-	// igual que la forma con parentesis.
-	verificarBase("NaOH", "hidroxido de Sodio");
-	verificarBase("KOH", "hidroxido de Potasio");
+	// Forma sin parentesis, que el parser entrega como tres componentes.
+	verificar(nombrarBase, "NaOH", "hidroxido de Sodio");
+	verificar(nombrarBase, "KOH", "hidroxido de Potasio");
 
-	// Casos de error.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-
-	parsearFormula("NaCl", f); // no tiene grupo OH
-	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::NO_ES_BASE);
-
-	parsearFormula("Na(OH)2", f); // Na solo tiene valencia 1, no puede llevar 2 OH
-	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
-
-	parsearFormula("Fe(OH)5", f); // Fe no tiene valencia 5
-	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
-
-	parsearFormula("XxOH", f); // elemento inexistente, forma con parentesis implicita
-	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
+	verificarError(nombrarBase, "NaCl", ErrorNomenclatura::NO_ES_BASE);
+	verificarError(nombrarBase, "Na(OH)2", ErrorNomenclatura::VALENCIA_NO_DETERMINADA);
+	verificarError(nombrarBase, "Fe(OH)5", ErrorNomenclatura::VALENCIA_NO_DETERMINADA);
+	verificarError(nombrarBase, "XxOH", ErrorNomenclatura::ELEMENTO_DESCONOCIDO);
 }
 
 void test_nomenclatura_sales()
 {
-	// Forma con parentesis, metal de valencia unica.
-	verificarSal("Al2(SO4)3", "sulfato de Aluminio");
-	verificarSal("Ca(NO3)2", "nitrato de Calcio");
-	verificarSal("Ca3(PO4)2", "fosfato de Calcio");
+	// Forma con parentesis.
+	verificar(nombrarSal, "Al2(SO4)3", "sulfato de Aluminio");
+	verificar(nombrarSal, "Ca(NO3)2", "nitrato de Calcio");
+	verificar(nombrarSal, "Ca3(PO4)2", "fosfato de Calcio");
+	verificar(nombrarSal, "Fe2(SO4)3", "sulfato de Hierro (III)");
 
-	// Forma con parentesis, metal de valencia multiple (con numero romano).
-	verificarSal("Fe2(SO4)3", "sulfato de Hierro (III)");
+	// Forma sin parentesis (un solo grupo del radical).
+	verificar(nombrarSal, "Na2SO4", "sulfato de Sodio");
+	verificar(nombrarSal, "CaCO3", "carbonato de Calcio");
+	verificar(nombrarSal, "NaNO3", "nitrato de Sodio");
+	verificar(nombrarSal, "Na2CO3", "carbonato de Sodio");
+	verificar(nombrarSal, "Na2SO3", "sulfito de Sodio");
+	verificar(nombrarSal, "FeSO4", "sulfato de Hierro (II)");
 
-	// Forma sin parentesis (un solo grupo de radical): metal + no metal + O,
-	// que debe normalizarse igual que la forma con parentesis.
-	verificarSal("Na2SO4", "sulfato de Sodio");
-	verificarSal("CaCO3", "carbonato de Calcio");
-	verificarSal("NaNO3", "nitrato de Sodio");
-	verificarSal("Na2CO3", "carbonato de Sodio");
-	verificarSal("Na2SO3", "sulfito de Sodio");
-	verificarSal("FeSO4", "sulfato de Hierro (II)");
+	// Radical con un solo oxigeno: se escribe "ClO", no "ClO1".
+	verificar(nombrarSal, "NaClO", "hipoclorito de Sodio");
+	verificar(nombrarSal, "KClO", "hipoclorito de Potasio");
 
-	// Radical cuyo subindice de O es 1 (no se escribe explicito, ej. "ClO"
-	// no "ClO1"), tanto en fromula reducida como sin parentesis.
-	verificarSal("NaClO", "hipoclorito de Sodio");
-	verificarSal("KClO", "hipoclorito de Potasio");
-
-	// Casos de error.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-
-	parsearFormula("NaCl", f); // no tiene radical ni oxigeno
-	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::NO_ES_SAL);
-
-	parsearFormula("CaO", f); // es oxido, no sal (no hay no metal para formar radical)
-	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::NO_ES_SAL);
-
-	parsearFormula("Na2SO5", f); // SO5 no es un radical conocido
-	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
-
-	parsearFormula("Fe2(SO4)5", f); // proporcion que no corresponde a ninguna valencia de Fe
-	ASSERT_TRUE(nomenclaturaTradicionalSal(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+	// "Cl" es un elemento, no un radical poliatomico: la formula simplemente
+	// no es una sal oxisal (es una sal binaria, fuera del alcance).
+	verificarError(nombrarSal, "NaCl", ErrorNomenclatura::NO_ES_SAL);
+	verificarError(nombrarSal, "CaO", ErrorNomenclatura::NO_ES_SAL);
+	// SO5 si tiene forma de radical, pero no esta en la tabla.
+	verificarError(nombrarSal, "Na2SO5", ErrorNomenclatura::ELEMENTO_DESCONOCIDO);
+	verificarError(nombrarSal, "Fe2(SO4)5", ErrorNomenclatura::VALENCIA_NO_DETERMINADA);
 }

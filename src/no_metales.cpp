@@ -1,30 +1,58 @@
 #include "cheminator/no_metales.hpp"
-#include <cstring>
 
-// Tabla de no metales típicos de un curso de nomenclatura inorgánica básica,
-// con sus valencias más usadas para anhídridos (óxidos de no metal) en orden
-// ascendente. La raíz es la que se usa para los sufijos -oso/-ico, que no
-// siempre coincide con el nombre del elemento (p.ej. "azufre" -> "sulfur-").
-static const InfoNoMetal TABLA_NO_METALES[] = {
-	{"C",  "Carbono",  "carbon",   {2, 4},       2},
-	{"N",  "Nitrogeno", "nitr",    {1, 3, 5},    3},
-	{"P",  "Fosforo",  "fosfor",  {3, 5},        2},
-	{"S",  "Azufre",   "sulfur",  {2, 4, 6},     3},
-	{"Cl", "Cloro",    "clor",    {1, 3, 5, 7},  4},
-	{"Br", "Bromo",    "brom",    {1, 3, 5, 7},  4},
-	{"I",  "Yodo",     "iod",     {1, 3, 5, 7},  4},
+#include "validacion_tablas.hpp"
+
+namespace cheminator {
+namespace {
+
+template <typename... Enteros>
+constexpr InfoNoMetal noMetal(std::string_view simbolo, std::string_view nombre, std::string_view raiz,
+                               Enteros... valencias)
+{
+	static_assert(sizeof...(Enteros) >= 1, "Un no metal debe declarar al menos una valencia.");
+	static_assert(sizeof...(Enteros) <= MAX_VALENCIAS, "Demasiadas valencias para MAX_VALENCIAS.");
+
+	return InfoNoMetal{simbolo, nombre, raiz, {Valencia{valencias}...}, static_cast<int>(sizeof...(Enteros))};
+}
+
+// No metales tipicos de un curso basico, con las valencias que usan al
+// combinarse con oxigeno (anhidridos). El nitrogeno con valencia 2 (NO) y
+// otros casos irregulares quedan fuera a proposito: no siguen el patron
+// regular de prefijos y sufijos.
+constexpr std::array TABLA_NO_METALES = {
+	noMetal("C", "Carbono", "carbon", 2, 4),
+	noMetal("N", "Nitrogeno", "nitr", 1, 3, 5),
+	noMetal("P", "Fosforo", "fosfor", 3, 5),
+	noMetal("S", "Azufre", "sulfur", 2, 4, 6),
+	noMetal("Cl", "Cloro", "clor", 1, 3, 5, 7),
+	noMetal("Br", "Bromo", "brom", 1, 3, 5, 7),
+	noMetal("I", "Yodo", "iod", 1, 3, 5, 7),
 };
 
-static constexpr int CANTIDAD_NO_METALES = sizeof(TABLA_NO_METALES) / sizeof(TABLA_NO_METALES[0]);
+static_assert(detalle::clavesUnicas(TABLA_NO_METALES, [](const InfoNoMetal &e) { return e.simbolo; }),
+              "Hay un simbolo repetido en la tabla de no metales.");
 
-const InfoNoMetal *buscarNoMetal(const char simbolo[])
+static_assert(detalle::cantidadesEnRango(
+                  TABLA_NO_METALES, [](const InfoNoMetal &e) { return e.cantidadValencias; }, MAX_VALENCIAS),
+              "Algun no metal declara una cantidad de valencias fuera de rango.");
+
+static_assert(detalle::valenciasAscendentes(TABLA_NO_METALES,
+                                             [](const InfoNoMetal &e) { return e.valenciasConocidas(); }),
+              "Las valencias de algun no metal no estan en orden ascendente: eso romperia la asignacion "
+              "de prefijos y sufijos tradicionales, que depende de la posicion.");
+
+} // namespace
+
+const InfoNoMetal *buscarNoMetal(std::string_view simbolo) noexcept
 {
-	for (int i = 0; i < CANTIDAD_NO_METALES; i++)
+	for (const InfoNoMetal &noMetal : TABLA_NO_METALES)
 	{
-		if (std::strcmp(simbolo, TABLA_NO_METALES[i].simbolo) == 0)
+		if (noMetal.simbolo == simbolo)
 		{
-			return &TABLA_NO_METALES[i];
+			return &noMetal;
 		}
 	}
 	return nullptr;
 }
+
+} // namespace cheminator

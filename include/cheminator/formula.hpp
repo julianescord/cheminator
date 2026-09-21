@@ -1,43 +1,67 @@
-#ifndef CHEMINATOR_FORMULA_H
-#define CHEMINATOR_FORMULA_H
+#ifndef CHEMINATOR_FORMULA_HPP
+#define CHEMINATOR_FORMULA_HPP
 
-#include "cheminator/elementos.hpp"
+#include "cheminator/tipos.hpp"
 
-// Un componente de una fórmula: un símbolo de elemento (o, si viene entre
-// paréntesis, el contenido completo del grupo, p.ej. "OH") y su subíndice.
-// Ej. en "Fe2O3", los componentes son {"Fe", 2} y {"O", 3}; en "Ca(OH)2",
-// son {"Ca", 1} y {"OH", 2}.
+#include <initializer_list>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace cheminator {
+
+// Un componente de una formula: un simbolo de elemento o, si venia entre
+// parentesis, el contenido completo del grupo ("OH", "SO4"), con su subindice.
+// En "Fe2O3" los componentes son {"Fe",2} y {"O",3}; en "Ca(OH)2", {"Ca",1} y
+// {"OH",2}.
 struct ComponenteFormula {
-	char simbolo[TAM_MAX];
-	int subindice;
+	std::string simbolo;
+	Subindice subindice;
 };
 
-// Máximo número de componentes distintos que se aceptan en una fórmula
-// (suficiente para los compuestos inorgánicos simples de este programa).
-constexpr int MAX_COMPONENTES = 4;
+// Tope de componentes distintos que se aceptan, suficiente para los
+// compuestos inorganicos simples que cubre la libreria.
+inline constexpr std::size_t MAX_COMPONENTES = 4;
 
-enum class ResultadoParseo {
-	OK,
-	FORMULA_VACIA,
-	SIMBOLO_INVALIDO,   // no empieza con mayúscula, o tiene caracteres no alfanuméricos
-	SUBINDICE_INVALIDO, // subíndice es 0 o no numérico
+enum class ErrorFormula {
+	VACIA,
+	SIMBOLO_INVALIDO,       // no empieza en mayuscula, o tiene caracteres raros
+	SUBINDICE_INVALIDO,     // se escribio un subindice igual a cero
 	DEMASIADOS_COMPONENTES,
-	GRUPO_MAL_FORMADO,  // paréntesis sin cerrar, vacío, o anidado
+	GRUPO_MAL_FORMADO,      // parentesis sin cerrar, vacio o anidado
 };
 
-struct FormulaParseada {
-	ComponenteFormula componentes[MAX_COMPONENTES];
-	int cantidadComponentes = 0;
+std::string_view mensajeError(ErrorFormula error) noexcept;
+
+// Una formula ya analizada, como lista de componentes.
+class Formula {
+public:
+	Formula() = default;
+	explicit Formula(std::vector<ComponenteFormula> componentes) : componentes_{std::move(componentes)} {}
+
+	std::span<const ComponenteFormula> componentes() const noexcept { return componentes_; }
+	std::size_t cantidad() const noexcept { return componentes_.size(); }
+
+	// El componente con ese simbolo exacto, o nullptr si no aparece.
+	const ComponenteFormula *componente(std::string_view simbolo) const noexcept;
+
+	// El unico componente cuyo simbolo no esta entre los dados. Devuelve
+	// nullptr si hay mas de uno o ninguno, lo que permite escribir
+	// "el metal es lo que no es oxigeno" sin repetir el bucle en cada
+	// funcion de nomenclatura.
+	const ComponenteFormula *unicoDistintoDe(std::initializer_list<std::string_view> simbolos) const noexcept;
+
+private:
+	std::vector<ComponenteFormula> componentes_;
 };
 
-// Analiza una fórmula química simple (p.ej. "Fe2O3", "H2O", "NaCl") y la
-// descompone en pares (símbolo, subíndice). Un símbolo sin subíndice
-// explícito se interpreta con subíndice 1. También reconoce un grupo entre
-// paréntesis con su propio subíndice (p.ej. "Ca(OH)2" -> {"Ca",1}, {"OH",2}),
-// útil para radicales como el hidroxilo o los aniones poliatómicos de sales.
-ResultadoParseo parsearFormula(const char formula[], FormulaParseada &resultado);
+// Analiza una formula quimica simple ("Fe2O3", "NaCl", "Ca(OH)2",
+// "Al2(SO4)3"). Un simbolo sin subindice explicito vale 1, y un grupo entre
+// parentesis se guarda como un unico componente con el contenido del grupo
+// como simbolo.
+Resultado<Formula, ErrorFormula> parsearFormula(std::string_view texto);
 
-// Devuelve un mensaje de error legible para un ResultadoParseo distinto de OK.
-const char *mensajeError(ResultadoParseo resultado);
+} // namespace cheminator
 
-#endif // CHEMINATOR_FORMULA_H
+#endif // CHEMINATOR_FORMULA_HPP

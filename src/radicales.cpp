@@ -1,49 +1,72 @@
 #include "cheminator/radicales.hpp"
-#include <cstring>
 
-// Radicales (aniones poliatómicos) derivados de los ácidos oxácidos
-// tabulados en oxacidos.cpp, verificados manualmente contra la nomenclatura
-// tradicional estándar (no derivados por regla genérica raíz+sufijo, que
-// falla para azufre y fósforo; ver la nota en radicales.h).
-static const InfoRadical TABLA_RADICALES[] = {
-	{"CO3",  2, "carbonato"},
+#include "validacion_tablas.hpp"
 
-	{"NO2",  1, "nitrito"},
-	{"NO3",  1, "nitrato"},
+#include <array>
 
-	{"PO3",  3, "fosfito"},
-	{"PO4",  3, "fosfato"},
+namespace cheminator {
+namespace {
 
-	{"SO2",  2, "hiposulfito"},
-	{"SO3",  2, "sulfito"},
-	{"SO4",  2, "sulfato"},
+// Ningun radical de esta tabla supera esta carga; cota para la verificacion.
+constexpr int MAX_CARGA = 4;
 
-	{"ClO",  1, "hipoclorito"},
-	{"ClO2", 1, "clorito"},
-	{"ClO3", 1, "clorato"},
-	{"ClO4", 1, "perclorato"},
+constexpr InfoRadical radical(std::string_view formula, int carga, std::string_view nombre)
+{
+	return InfoRadical{formula, Carga{carga}, nombre};
+}
 
-	{"BrO",  1, "hipobromito"},
-	{"BrO2", 1, "bromito"},
-	{"BrO3", 1, "bromato"},
-	{"BrO4", 1, "perbromato"},
+// Radicales derivados de los oxacidos tabulados en oxacidos.cpp.
+constexpr std::array TABLA_RADICALES = {
+	radical("CO3", 2, "carbonato"),
 
-	{"IO",   1, "hipoiodito"},
-	{"IO2",  1, "iodito"},
-	{"IO3",  1, "iodato"},
-	{"IO4",  1, "periodato"},
+	radical("NO2", 1, "nitrito"),
+	radical("NO3", 1, "nitrato"),
+
+	radical("PO3", 3, "fosfito"),
+	radical("PO4", 3, "fosfato"),
+
+	radical("SO2", 2, "hiposulfito"),
+	radical("SO3", 2, "sulfito"),
+	radical("SO4", 2, "sulfato"),
+
+	radical("ClO", 1, "hipoclorito"),
+	radical("ClO2", 1, "clorito"),
+	radical("ClO3", 1, "clorato"),
+	radical("ClO4", 1, "perclorato"),
+
+	radical("BrO", 1, "hipobromito"),
+	radical("BrO2", 1, "bromito"),
+	radical("BrO3", 1, "bromato"),
+	radical("BrO4", 1, "perbromato"),
+
+	radical("IO", 1, "hipoiodito"),
+	radical("IO2", 1, "iodito"),
+	radical("IO3", 1, "iodato"),
+	radical("IO4", 1, "periodato"),
 };
 
-static constexpr int CANTIDAD_RADICALES = sizeof(TABLA_RADICALES) / sizeof(TABLA_RADICALES[0]);
+static_assert(detalle::clavesUnicas(TABLA_RADICALES, [](const InfoRadical &r) { return r.formula; }),
+              "Hay una formula de radical repetida en la tabla.");
 
-const InfoRadical *buscarRadical(const char formula[])
+static_assert(detalle::clavesUnicas(TABLA_RADICALES, [](const InfoRadical &r) { return r.nombre; }),
+              "Hay dos radicales con el mismo nombre en la tabla.");
+
+static_assert(detalle::cantidadesEnRango(
+                  TABLA_RADICALES, [](const InfoRadical &r) { return r.carga.valor(); }, MAX_CARGA),
+              "Algun radical declara una carga fuera de rango.");
+
+} // namespace
+
+const InfoRadical *buscarRadical(std::string_view formula) noexcept
 {
-	for (int i = 0; i < CANTIDAD_RADICALES; i++)
+	for (const InfoRadical &radical : TABLA_RADICALES)
 	{
-		if (std::strcmp(formula, TABLA_RADICALES[i].formula) == 0)
+		if (radical.formula == formula)
 		{
-			return &TABLA_RADICALES[i];
+			return &radical;
 		}
 	}
 	return nullptr;
 }
+
+} // namespace cheminator

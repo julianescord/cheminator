@@ -1,26 +1,27 @@
 #include "menu.hpp"
-#include <cstdio>
+
 #include <iostream>
 #include <limits>
 
 int main()
 {
+	using namespace cheminator::cli;
+
 	bool repetir = true;
 
 	while (repetir)
 	{
 		dibujarMenu();
-		std::printf("=>");
+		std::cout << "=> ";
 
 		int opcion = 0;
 		if (!(std::cin >> opcion))
 		{
-			// Dos casos distintos, ambos ignorados por la version anterior
-			// (que usaba scanf y no revisaba su resultado): si la entrada se
-			// agota, scanf/cin dejan `opcion` sin tocar y el bucle gira para
-			// siempre; si el usuario escribe algo que no es un numero, el
-			// token invalido nunca se consume y vuelve a fallar en cada
-			// vuelta, con el mismo resultado.
+			// Dos casos que la version anterior ignoraba, porque usaba scanf
+			// sin revisar su resultado: con la entrada agotada, `opcion`
+			// quedaba sin tocar y el bucle giraba para siempre; con texto no
+			// numerico, el token invalido nunca se consumia y volvia a fallar
+			// en cada vuelta, con el mismo efecto.
 			if (std::cin.eof())
 			{
 				break;
@@ -38,39 +39,16 @@ int main()
 
 		switch (opcion)
 		{
-			case 1: // Oxidos
-				oxido();
-				break;
+			case 1: oxido(); break;
+			case 2: peroxido(); break;
+			case 3: anhidrido(); break;
+			case 4: acidoHidracido(); break;
+			case 5: acidoOxacido(); break;
+			case 6: base(); break;
+			case 7: salOxisal(); break;
+			case 8: detectarAutomaticamente(); break;
 
-			case 2: // Peroxidos
-				peroxido();
-				break;
-
-			case 3: // Anhidridos
-				anhidrido();
-				break;
-
-			case 4: // Acidos hidracidos
-				acidoHidracido();
-				break;
-
-			case 5: // Acidos oxacidos
-				acidoOxacido();
-				break;
-
-			case 6: // Bases
-				base();
-				break;
-
-			case 7: // Sales oxisal
-				salOxisal();
-				break;
-
-			case 8: // Deteccion automatica con explicacion
-				detectarAutomaticamente();
-				break;
-
-			case 0: // Salir
+			case 0:
 				repetir = false;
 				break;
 

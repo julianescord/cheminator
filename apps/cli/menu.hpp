@@ -1,33 +1,26 @@
-#ifndef CHEMINATOR_MENU_H
-#define CHEMINATOR_MENU_H
+#ifndef CHEMINATOR_CLI_MENU_HPP
+#define CHEMINATOR_CLI_MENU_HPP
 
-// Muestra el menú principal con las opciones de nomenclatura disponibles.
+// Interfaz de consola. Vive fuera de la libreria a proposito: el nucleo no
+// hace ninguna entrada ni salida, que es lo que permite embeberlo.
+namespace cheminator::cli {
+
+// Muestra el menu principal con las opciones disponibles.
 void dibujarMenu();
 
-// Pide una fórmula de óxido y muestra su nomenclatura Stock.
+// Cada opcion pide una formula y muestra el resultado.
 void oxido();
-
-// Pide una fórmula de peróxido y muestra su nomenclatura Stock.
 void peroxido();
-
-// Pide una fórmula de anhídrido y muestra su nomenclatura tradicional.
 void anhidrido();
-
-// Pide una fórmula de ácido hidrácido y muestra su nomenclatura tradicional.
 void acidoHidracido();
-
-// Pide una fórmula de ácido oxácido y muestra su nomenclatura tradicional.
 void acidoOxacido();
-
-// Pide una fórmula de base (hidróxido) y muestra su nomenclatura Stock.
 void base();
-
-// Pide una fórmula de sal oxisal y muestra su nomenclatura tradicional.
 void salOxisal();
 
-// Pide una fórmula sin que el usuario indique la categoría, detecta
-// automáticamente a qué tipo de compuesto corresponde, y muestra el
-// resultado junto con el razonamiento paso a paso.
+// Pide una formula sin que el usuario indique la categoria, la detecta y
+// muestra el razonamiento paso a paso ademas del nombre.
 void detectarAutomaticamente();
 
-#endif // CHEMINATOR_MENU_H
+} // namespace cheminator::cli
+
+#endif // CHEMINATOR_CLI_MENU_HPP

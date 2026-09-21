@@ -1,25 +1,50 @@
-#ifndef CHEMINATOR_ELEMENTOS_H
-#define CHEMINATOR_ELEMENTOS_H
+#ifndef CHEMINATOR_ELEMENTOS_HPP
+#define CHEMINATOR_ELEMENTOS_HPP
 
-// Tamaño máximo esperado para símbolos/nombres de elementos y fórmulas.
-constexpr int TAM_MAX = 50;
+#include "cheminator/tipos.hpp"
 
-// Máximo número de valencias que puede tener un elemento en esta tabla.
-constexpr int MAX_VALENCIAS = 4;
+#include <array>
+#include <cstddef>
+#include <span>
+#include <string_view>
+
+namespace cheminator {
+
+// Maximo numero de valencias que puede declarar un elemento en estas tablas.
+inline constexpr int MAX_VALENCIAS = 4;
 
 struct InfoElemento {
-	const char *simbolo;
-	const char *nombre;
-	int valencias[MAX_VALENCIAS];
+	std::string_view simbolo;
+	std::string_view nombre;
+	// En orden ascendente; el orden importa para la nomenclatura tradicional,
+	// que elige prefijo y sufijo segun la posicion de la valencia usada.
+	std::array<Valencia, MAX_VALENCIAS> valencias;
 	int cantidadValencias;
+
+	// Solo las valencias realmente declaradas, sin el relleno del array.
+	constexpr std::span<const Valencia> valenciasConocidas() const noexcept
+	{
+		return {valencias.data(), static_cast<std::size_t>(cantidadValencias)};
+	}
+
+	constexpr bool tieneUnicaValencia() const noexcept { return cantidadValencias == 1; }
+
+	constexpr bool admite(Valencia valencia) const noexcept
+	{
+		for (const Valencia conocida : valenciasConocidas())
+		{
+			if (conocida == valencia)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 };
 
-// Busca la información (nombre y valencias) del elemento con el símbolo dado.
-// Devuelve `nullptr` si el símbolo no está en la tabla.
-const InfoElemento *buscarElemento(const char simbolo[]);
+// Busca un metal por su simbolo. Devuelve nullptr si no esta en la tabla.
+const InfoElemento *buscarElemento(std::string_view simbolo) noexcept;
 
-// Busca el nombre del elemento correspondiente al símbolo dado (p.ej. "H" -> "Hidrogeno").
-// Escribe el resultado en `resultado`. Si el símbolo no se reconoce, escribe una cadena vacía.
-void obtenerNombreElemento(const char simbolo[], char resultado[TAM_MAX]);
+} // namespace cheminator
 
-#endif // CHEMINATOR_ELEMENTOS_H
+#endif // CHEMINATOR_ELEMENTOS_HPP

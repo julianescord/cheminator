@@ -1,26 +1,37 @@
 #include "cheminator/formula.hpp"
 #include "cheminator/nomenclatura.hpp"
 #include "test_runner.h"
-#include <cstring>
 
-static void verificarDeteccion(const char *formulaTexto, CategoriaCompuesto categoriaEsperada, const char *nombreEsperado)
+using namespace cheminator;
+
+namespace {
+
+void verificarDeteccion(std::string_view texto, CategoriaCompuesto categoriaEsperada, std::string_view nombreEsperado)
 {
-	FormulaParseada f;
-	ResultadoParseo rp = parsearFormula(formulaTexto, f);
-	ASSERT_TRUE(rp == ResultadoParseo::OK);
+	const auto analizada = parsearFormula(texto);
+	ASSERT_TRUE(analizada.ok());
+	if (!analizada.ok())
+	{
+		return;
+	}
 
-	char resultado[TAM_MAX];
-	CategoriaCompuesto categoria;
-	ResultadoNomenclatura rn = detectarYNombrar(f, resultado, categoria);
-	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
-	ASSERT_TRUE(categoria == categoriaEsperada);
-	ASSERT_TRUE(std::strcmp(resultado, nombreEsperado) == 0);
+	const auto resultado = nombrar(analizada.valor());
+	ASSERT_TRUE(resultado.ok());
+	if (!resultado.ok())
+	{
+		std::fprintf(stderr, "  (al detectar \"%.*s\")\n", static_cast<int>(texto.size()), texto.data());
+		return;
+	}
+
+	ASSERT_TRUE(resultado.valor().categoria == categoriaEsperada);
+	ASSERT_EQ_STR(resultado.valor().nombre, nombreEsperado);
 }
+
+} // namespace
 
 void test_deteccion()
 {
-	// Una fórmula representativa de cada una de las 7 categorías, sin que
-	// el llamador indique cuál es.
+	// Una formula representativa de cada categoria, sin decirle cual es.
 	verificarDeteccion("Fe2O3", CategoriaCompuesto::OXIDO, "oxido de Hierro (III)");
 	verificarDeteccion("Na2O2", CategoriaCompuesto::PEROXIDO, "peroxido de Sodio");
 	verificarDeteccion("SO3", CategoriaCompuesto::ANHIDRIDO, "anhidrido sulfurico");
@@ -29,21 +40,45 @@ void test_deteccion()
 	verificarDeteccion("Ca(OH)2", CategoriaCompuesto::BASE, "hidroxido de Calcio");
 	verificarDeteccion("Al2(SO4)3", CategoriaCompuesto::SAL_OXISAL, "sulfato de Aluminio");
 
-	// Caso ambiguo real: CuO calza tanto con "oxido de cobre (II)" como,
-	// formalmente, con un peroxido de cobre de valencia 1. Se prioriza la
-	// lectura de oxido normal (ver la nota en detectarYNombrar).
+	// Formas sin parentesis de base y sal, que el parser entrega distinto.
+	verificarDeteccion("NaOH", CategoriaCompuesto::BASE, "hidroxido de Sodio");
+	verificarDeteccion("CaCO3", CategoriaCompuesto::SAL_OXISAL, "carbonato de Calcio");
+
+	// Caso ambiguo real: CuO encaja como oxido de cobre (II) y tambien,
+	// formalmente, como peroxido de cobre con valencia 1. Se prefiere la
+	// lectura de oxido, que es la estandar.
 	verificarDeteccion("CuO", CategoriaCompuesto::OXIDO, "oxido de Cobre (II)");
 
-	// Una fórmula que no corresponde a ninguna categoría reconocida.
-	FormulaParseada f;
-	char resultado[TAM_MAX];
-	CategoriaCompuesto categoria;
-	parsearFormula("NaCl", f);
-	ASSERT_TRUE(detectarYNombrar(f, resultado, categoria) == ResultadoNomenclatura::FORMULA_INVALIDA);
+	// NaCl es un compuesto valido, pero de una categoria fuera del alcance
+	// (sal binaria): el error debe decir eso, no inventar otra cosa.
+	{
+		const auto analizada = parsearFormula("NaCl");
+		ASSERT_TRUE(analizada.ok());
+		if (analizada.ok())
+		{
+			const auto resultado = nombrar(analizada.valor());
+			ASSERT_TRUE(!resultado.ok());
+			if (!resultado.ok())
+			{
+				ASSERT_TRUE(resultado.error() == ErrorNomenclatura::NINGUNA_CATEGORIA);
+			}
+		}
+	}
 
-	// La explicación se llena cuando se pasa un puntero no nulo.
-	Explicacion explicacion;
-	parsearFormula("Fe2O3", f);
-	detectarYNombrar(f, resultado, categoria, &explicacion);
-	ASSERT_TRUE(explicacion.cantidadPasos > 0);
+	// El razonamiento acompana siempre al resultado.
+	{
+		const auto analizada = parsearFormula("Fe2O3");
+		ASSERT_TRUE(analizada.ok());
+		if (analizada.ok())
+		{
+			const auto resultado = nombrar(analizada.valor());
+			ASSERT_TRUE(resultado.ok());
+			if (resultado.ok())
+			{
+				ASSERT_TRUE(resultado.valor().pasos.size() >= 3);
+			}
+		}
+	}
+
+	ASSERT_EQ_STR(nombreCategoria(CategoriaCompuesto::SAL_OXISAL), "sal oxisal");
 }

@@ -1,28 +1,32 @@
-#ifndef CHEMINATOR_OXACIDOS_H
-#define CHEMINATOR_OXACIDOS_H
+#ifndef CHEMINATOR_OXACIDOS_HPP
+#define CHEMINATOR_OXACIDOS_HPP
 
-#include "cheminator/elementos.hpp"
+#include "cheminator/tipos.hpp"
 
-// Un ácido oxácido conocido: la fórmula HxEyOz (ya en su forma reducida
-// estándar, no derivada aritméticamente) que corresponde a un no metal con
-// una valencia específica, junto con el nombre tradicional resultante.
+#include <string_view>
+
+namespace cheminator {
+
+// Un acido oxacido conocido: la formula HxEyOz en su forma reducida estandar
+// y el nombre tradicional que le corresponde.
 //
-// Se tabula explícitamente (en vez de calcularse sumando el anhídrido + H2O
-// y reduciendo) porque esa suma no siempre da la fórmula real: por ejemplo,
-// el fósforo con valencia 3 y 5 da H3PO3 y H3PO4 (no HPO2/HPO3 como
-// resultaría de la regla simple de intercambio de valencias), por la
-// estructura molecular real de esos ácidos.
+// Se tabula explicitamente en vez de derivarse sumando anhidrido + H2O y
+// reduciendo, porque esa derivacion no siempre da la formula real: el fosforo
+// con valencias 3 y 5 forma H3PO3 y H3PO4, no HPO2 y HPO3 como resultaria de
+// aplicar la regla simple de intercambio.
 struct InfoOxacido {
-	const char *simboloNoMetal;
-	int subindiceH;
-	int subindiceNoMetal;
-	int subindiceO;
-	// Nombre completo tradicional, p.ej. "acido sulfurico".
-	const char *nombre;
+	std::string_view simboloNoMetal;
+	Subindice hidrogenos;
+	Subindice atomosNoMetal;
+	Subindice oxigenos;
+	std::string_view nombre;
 };
 
-// Busca el oxácido cuya fórmula coincide exactamente con los subíndices
-// dados para un no metal. Devuelve `nullptr` si no hay coincidencia.
-const InfoOxacido *buscarOxacido(const char simboloNoMetal[], int subindiceH, int subindiceNoMetal, int subindiceO);
+// Busca el oxacido cuya formula coincide exactamente con los subindices dados.
+// Devuelve nullptr si no hay coincidencia.
+const InfoOxacido *buscarOxacido(std::string_view simboloNoMetal, Subindice hidrogenos, Subindice atomosNoMetal,
+                                  Subindice oxigenos) noexcept;
 
-#endif // CHEMINATOR_OXACIDOS_H
+} // namespace cheminator
+
+#endif // CHEMINATOR_OXACIDOS_HPP

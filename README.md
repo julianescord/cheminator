@@ -72,18 +72,20 @@ target_link_libraries(mi_programa PRIVATE cheminator::cheminator)
 #include <cheminator/formula.hpp>
 #include <cheminator/nomenclatura.hpp>
 
-FormulaParseada f;
-if (parsearFormula("Fe2O3", f) == ResultadoParseo::OK)
-{
-    char nombre[TAM_MAX];
-    CategoriaCompuesto categoria;
-    Explicacion explicacion;
+using namespace cheminator;
 
-    if (detectarYNombrar(f, nombre, categoria, &explicacion) == ResultadoNomenclatura::OK)
+if (const auto formula = parsearFormula("Fe2O3"))
+{
+    if (const auto resultado = nombrar(formula.valor()))
     {
-        // nombre    -> "oxido de Hierro (III)"
-        // categoria -> CategoriaCompuesto::OXIDO
-        // explicacion.pasos -> el razonamiento, linea por linea
+        const Nomenclatura &n = resultado.valor();
+        n.nombre;     // "oxido de Hierro (III)"
+        n.categoria;  // CategoriaCompuesto::OXIDO
+        n.pasos;      // el razonamiento, linea por linea
+    }
+    else
+    {
+        mensajeError(resultado.error());
     }
 }
 ```

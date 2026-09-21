@@ -1,25 +1,31 @@
-#ifndef CHEMINATOR_HIDRACIDOS_H
-#define CHEMINATOR_HIDRACIDOS_H
+#ifndef CHEMINATOR_HIDRACIDOS_HPP
+#define CHEMINATOR_HIDRACIDOS_HPP
 
-#include "cheminator/elementos.hpp"
+#include "cheminator/tipos.hpp"
 
-// Un no metal que forma ácido hidrácido con el hidrógeno (HxE), con la
-// cantidad de átomos de H que le corresponde por su valencia como anión
-// (p.ej. Cl actúa como -1 -> HCl; S actúa como -2 -> H2S). Esta tabla es
-// independiente de la de anhídridos: ahí el no metal actúa con valencia
-// positiva (formando enlace con oxígeno); aquí actúa con valencia negativa
-// (formando enlace con hidrógeno), y el conjunto de no metales que forman
-// hidrácidos comunes es distinto (halógenos + S, Se, Te; no incluye N, P, C).
+#include <string_view>
+
+namespace cheminator {
+
+// Un no metal que forma acido hidracido con el hidrogeno (HxE).
+//
+// Esta tabla es independiente de la de anhidridos a proposito: alli el no
+// metal actua con valencia positiva (enlazado a oxigeno) y aqui con valencia
+// negativa (enlazado a hidrogeno), y el conjunto de elementos que forman
+// hidracidos comunes tampoco coincide (no incluye N, P ni C).
 struct InfoHidracido {
-	const char *simbolo;
-	// Raíz para armar el nombre "acido <raiz>hidrico" (p.ej. "clor" -> "acido clorhidrico").
-	const char *raiz;
-	// Subíndice de hidrógeno esperado en la fórmula reducida (= |valencia negativa|).
-	int subindiceHidrogeno;
+	std::string_view simbolo;
+	// Raiz para armar "acido <raiz>hidrico" ("clor" -> "acido clorhidrico").
+	std::string_view raiz;
+	// Cuantos hidrogenos lleva la formula, que es el valor absoluto de la
+	// valencia negativa del no metal (Cl actua -1 -> HCl; S actua -2 -> H2S).
+	Subindice hidrogenos;
 };
 
-// Busca la información de un no metal que forma ácido hidrácido.
-// Devuelve `nullptr` si el símbolo no forma un hidrácido común.
-const InfoHidracido *buscarHidracido(const char simbolo[]);
+// Busca un no metal formador de hidracido. Devuelve nullptr si no forma uno
+// de los hidracidos comunes que cubre este programa.
+const InfoHidracido *buscarHidracido(std::string_view simbolo) noexcept;
 
-#endif // CHEMINATOR_HIDRACIDOS_H
+} // namespace cheminator
+
+#endif // CHEMINATOR_HIDRACIDOS_HPP

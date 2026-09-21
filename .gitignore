@@ -1,6 +1,17 @@
-# Binarios compilados
-cheminator
-run_tests
+# Directorios de build. Como todo se compila dentro de build/, no hace falta
+# listar los nombres de los ejecutables por separado.
+#
+# Nota: aqui hubo antes una linea suelta "cheminator" para el binario. Git
+# trata un patron sin barra como "cualquier archivo o carpeta con ese nombre,
+# a cualquier profundidad", asi que tambien ignoraba include/cheminator/, el
+# directorio de headers publicos de la libreria. Los patrones de artefactos
+# van anclados a su ruta por ese motivo.
+build/
+build-*/
+bin/
+obj/
+
+# Binarios y objetos sueltos, por si alguien compila a mano fuera de build/
 *.exe
 *.out
 *.o
@@ -8,11 +19,7 @@ run_tests
 *.a
 *.so
 *.dll
-
-# Directorios de build
-build/
-bin/
-obj/
+*.wasm
 
 # Archivos de IDE / editor
 .vscode/

@@ -1,119 +1,21 @@
-#ifndef CHEMINATOR_NOMENCLATURA_H
-#define CHEMINATOR_NOMENCLATURA_H
+#ifndef CHEMINATOR_NOMENCLATURA_HPP
+#define CHEMINATOR_NOMENCLATURA_HPP
 
 #include "cheminator/elementos.hpp"
 #include "cheminator/formula.hpp"
-#include "cheminator/no_metales.hpp"
 #include "cheminator/hidracidos.hpp"
+#include "cheminator/no_metales.hpp"
 #include "cheminator/oxacidos.hpp"
 #include "cheminator/radicales.hpp"
+#include "cheminator/tipos.hpp"
 
-// Máximo número de líneas de razonamiento que registra una Explicacion, y
-// longitud máxima de cada línea (más holgada que TAM_MAX porque una línea de
-// explicación es una oración completa, no solo un símbolo o fórmula corta).
-constexpr int MAX_PASOS_EXPLICACION = 10;
-constexpr int TAM_MAX_PASO = 160;
+#include <string>
+#include <string_view>
+#include <vector>
 
-// Bitácora opcional de los pasos de razonamiento que sigue una función de
-// nomenclatura (p.ej. "Se identifica el metal (Fe) y el oxigeno (O)",
-// "Hierro tiene valencias conocidas: II, III"). Cada función de nomenclatura
-// la recibe por puntero y, si no es nullptr, agrega una línea por cada paso
-// relevante de su cálculo; si es nullptr (el valor por defecto), no se
-// registra nada y el costo es cero. Pensada para el modo de detección
-// automática, que muestra el razonamiento completo además del resultado.
-struct Explicacion {
-	char pasos[MAX_PASOS_EXPLICACION][TAM_MAX_PASO];
-	int cantidadPasos = 0;
-};
+namespace cheminator {
 
-// Agrega una línea a la explicación si `explicacion` no es nullptr y aún hay
-// espacio disponible; no hace nada en caso contrario (uso seguro con nullptr).
-void agregarPaso(Explicacion *explicacion, const char *formato, ...);
-
-enum class ResultadoNomenclatura {
-	OK,
-	FORMULA_INVALIDA,        // no parseó como fórmula química
-	NO_ES_OXIDO,             // no tiene exactamente metal + oxígeno
-	NO_ES_PEROXIDO,          // no tiene exactamente metal + grupo peroxo (O en subíndice par)
-	NO_ES_ANHIDRIDO,         // no tiene exactamente no metal + oxígeno
-	NO_ES_HIDRACIDO,         // no tiene exactamente H + no metal formador de hidrácido, en la proporción esperada
-	NO_ES_OXACIDO,           // no tiene exactamente H + no metal + oxígeno
-	NO_ES_BASE,              // no tiene exactamente metal + grupo hidroxilo (OH), en la proporción esperada
-	NO_ES_SAL,               // no tiene exactamente metal + radical poliatómico conocido, en la proporción esperada
-	ELEMENTO_DESCONOCIDO,    // el metal no está en la tabla de elementos
-	VALENCIA_NO_DETERMINADA, // el subíndice de O no corresponde a ninguna valencia conocida del metal
-};
-
-// Calcula la nomenclatura Stock de un óxido (MetalxOy) a partir de su fórmula
-// ya parseada, escribiendo el resultado (p.ej. "oxido de hierro (III)") en
-// `resultado`. Requiere que `formula` tenga exactamente dos componentes:
-// un metal y oxígeno ("O"), en cualquier orden.
-ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                              Explicacion *explicacion = nullptr);
-
-// Calcula la nomenclatura Stock de un peróxido (Metal2(O2) o equivalente) a
-// partir de su fórmula ya parseada, escribiendo el resultado (p.ej.
-// "peroxido de sodio") en `resultado`. Un peróxido siempre contiene el grupo
-// peroxo (O2)^2-, por lo que el subíndice de oxígeno en la fórmula debe ser
-// el doble del subíndice del metal (p.ej. Na2O2, H2O2, BaO2).
-ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                                 Explicacion *explicacion = nullptr);
-
-// Calcula la nomenclatura tradicional de un anhídrido (óxido de no metal,
-// NoMetalxOy) a partir de su fórmula ya parseada, escribiendo el resultado
-// (p.ej. "anhidrido sulfurico") en `resultado`. Requiere que `formula` tenga
-// exactamente dos componentes: un no metal y oxígeno ("O"), en cualquier
-// orden. Usa sufijos -oso/-ico y, para no metales con 3 o 4 valencias
-// conocidas, también los prefijos hipo-/per- según la posición de la
-// valencia deducida dentro de la lista ordenada de valencias del no metal.
-ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                                        Explicacion *explicacion = nullptr);
-
-// Calcula la nomenclatura tradicional de un ácido hidrácido (HxE, con E un no
-// metal formador de hidrácido) a partir de su fórmula ya parseada, escribiendo
-// el resultado (p.ej. "acido clorhidrico") en `resultado`. Requiere que
-// `formula` tenga exactamente dos componentes: hidrógeno ("H") y un no metal
-// de la tabla de hidrácidos, con el subíndice de H igual a la valencia
-// negativa de ese no metal (p.ej. HCl, H2S).
-ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                                        Explicacion *explicacion = nullptr);
-
-// Calcula la nomenclatura tradicional de un ácido oxácido (HxEyOz, con E un
-// no metal) a partir de su fórmula ya parseada, escribiendo el resultado
-// (p.ej. "acido sulfurico") en `resultado`. Requiere que `formula` tenga
-// exactamente tres componentes: hidrógeno ("H"), un no metal y oxígeno
-// ("O"). La fórmula se busca tal cual (ya reducida) en una tabla de
-// oxácidos conocidos, en vez de derivarse aritméticamente de anhídrido+H2O
-// (ver la nota en oxacidos.h sobre por qué esa derivación no siempre es
-// correcta).
-ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                                      Explicacion *explicacion = nullptr);
-
-// Calcula la nomenclatura Stock de una base/hidróxido (Metal(OH)n) a partir
-// de su fórmula ya parseada, escribiendo el resultado (p.ej. "hidroxido de
-// hierro (III)") en `resultado`. Acepta tanto la forma con paréntesis
-// (p.ej. "Ca(OH)2", que el parser entrega como componentes {"Ca",1} y
-// {"OH",2}) como la forma sin paréntesis para un solo grupo hidroxilo
-// (p.ej. "NaOH", que el parser entrega como {"Na",1},{"O",1},{"H",1}): esta
-// función normaliza ambos patrones antes de deducir la valencia del metal.
-ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                             Explicacion *explicacion = nullptr);
-
-// Calcula la nomenclatura tradicional de una sal oxisal (Metal_x(Radical)_y)
-// a partir de su fórmula ya parseada, escribiendo el resultado (p.ej.
-// "sulfato de aluminio") en `resultado`. Acepta tanto la forma con
-// paréntesis para varios grupos (p.ej. "Al2(SO4)3", que el parser entrega
-// como {"Al",2},{"SO4",3}) como la forma sin paréntesis para un solo grupo
-// (p.ej. "Na2SO4", que el parser entrega como {"Na",2},{"S",1},{"O",4}):
-// esta función normaliza ambos patrones antes de identificar el radical y
-// verificar que la carga del radical y la valencia del metal se equilibran.
-ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                                  Explicacion *explicacion = nullptr);
-
-// Devuelve un mensaje de error legible para un ResultadoNomenclatura distinto de OK.
-const char *mensajeError(ResultadoNomenclatura resultado);
-
-// Una de las 7 categorías de compuesto que este programa reconoce.
+// Las categorias de compuesto que reconoce la libreria.
 enum class CategoriaCompuesto {
 	OXIDO,
 	PEROXIDO,
@@ -124,20 +26,67 @@ enum class CategoriaCompuesto {
 	SAL_OXISAL,
 };
 
-// Nombre legible de una categoría (p.ej. "oxido", "acido oxacido"), para
-// mostrarla en el modo de detección automática.
-const char *nombreCategoria(CategoriaCompuesto categoria);
+std::string_view nombreCategoria(CategoriaCompuesto categoria) noexcept;
 
-// Prueba la fórmula ya parseada contra las 7 categorías de compuesto, en un
-// orden que evita ambigüedades (ver la implementación para el porqué de ese
-// orden), y devuelve la primera que reconoce la fórmula con éxito. Escribe
-// el nombre resultante en `resultado`, la categoría detectada en
-// `categoriaDetectada`, y opcionalmente el razonamiento paso a paso en
-// `explicacion`. Si ninguna categoría reconoce la fórmula, devuelve el
-// ResultadoNomenclatura de la categoría cuyo fallo se considera más
-// informativo (ver implementación) y `categoriaDetectada` queda sin definir.
-ResultadoNomenclatura detectarYNombrar(const FormulaParseada &formula, char resultado[TAM_MAX],
-                                        CategoriaCompuesto &categoriaDetectada,
-                                        Explicacion *explicacion = nullptr);
+// El resultado de nombrar un compuesto: ademas del nombre, la categoria a la
+// que resulto pertenecer y el razonamiento que llevo hasta el.
+//
+// Los pasos no son un extra decorativo: son el motivo por el que existe esta
+// libreria. Las herramientas equivalentes devuelven el nombre y nada mas, lo
+// que sirve para consultar pero no para aprender.
+struct Nomenclatura {
+	std::string nombre;
+	CategoriaCompuesto categoria;
+	std::vector<std::string> pasos;
+};
 
-#endif // CHEMINATOR_NOMENCLATURA_H
+enum class ErrorNomenclatura {
+	NINGUNA_CATEGORIA,       // no coincide con ninguna de las categorias conocidas
+	NO_ES_OXIDO,
+	NO_ES_PEROXIDO,
+	NO_ES_ANHIDRIDO,
+	NO_ES_HIDRACIDO,
+	NO_ES_OXACIDO,
+	NO_ES_BASE,
+	NO_ES_SAL,
+	ELEMENTO_DESCONOCIDO,    // algun elemento no esta en las tablas
+	VALENCIA_NO_DETERMINADA, // los subindices no cuadran con ninguna valencia conocida
+};
+
+std::string_view mensajeError(ErrorNomenclatura error) noexcept;
+
+using ResultadoNomenclatura = Resultado<Nomenclatura, ErrorNomenclatura>;
+
+// Nomenclatura Stock: "oxido de Hierro (III)". El numero romano solo aparece
+// cuando el metal admite mas de una valencia.
+ResultadoNomenclatura nombrarOxido(const Formula &formula);
+
+// Nomenclatura Stock: "peroxido de Sodio". El grupo peroxo (O2)2- hace que
+// cada oxigeno aporte valencia -1 y que su subindice no se reduzca.
+ResultadoNomenclatura nombrarPeroxido(const Formula &formula);
+
+// Nomenclatura tradicional: "anhidrido sulfurico". Usa los sufijos -oso/-ico
+// y, para no metales con 3 o 4 valencias, los prefijos hipo-/per-.
+ResultadoNomenclatura nombrarAnhidrido(const Formula &formula);
+
+// Nomenclatura tradicional: "acido clorhidrico" (H + no metal).
+ResultadoNomenclatura nombrarHidracido(const Formula &formula);
+
+// Nomenclatura tradicional: "acido sulfurico" (H + no metal + oxigeno).
+ResultadoNomenclatura nombrarOxacido(const Formula &formula);
+
+// Nomenclatura Stock: "hidroxido de Calcio". Acepta tanto "Ca(OH)2" como
+// "NaOH", que el parser entrega de formas distintas.
+ResultadoNomenclatura nombrarBase(const Formula &formula);
+
+// Nomenclatura tradicional: "sulfato de Aluminio". Acepta tanto "Al2(SO4)3"
+// como "Na2SO4".
+ResultadoNomenclatura nombrarSal(const Formula &formula);
+
+// Prueba la formula contra las categorias conocidas y devuelve la primera que
+// la reconoce, sin que haga falta decirle de antemano que tipo de compuesto es.
+ResultadoNomenclatura nombrar(const Formula &formula);
+
+} // namespace cheminator
+
+#endif // CHEMINATOR_NOMENCLATURA_HPP

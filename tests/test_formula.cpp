@@ -1,50 +1,89 @@
 #include "cheminator/formula.hpp"
 #include "test_runner.h"
-#include <cstring>
+
+using namespace cheminator;
+
+namespace {
+
+// Comprueba que la formula se descompone en los componentes esperados.
+void verificarComponentes(std::string_view texto, std::initializer_list<std::pair<std::string_view, int>> esperados)
+{
+	const auto resultado = parsearFormula(texto);
+	ASSERT_TRUE(resultado.ok());
+	if (!resultado.ok())
+	{
+		return;
+	}
+
+	const Formula &formula = resultado.valor();
+	ASSERT_EQ_INT(static_cast<int>(formula.cantidad()), static_cast<int>(esperados.size()));
+	if (formula.cantidad() != esperados.size())
+	{
+		return;
+	}
+
+	std::size_t i = 0;
+	for (const auto &[simbolo, subindice] : esperados)
+	{
+		ASSERT_EQ_STR(formula.componentes()[i].simbolo, simbolo);
+		ASSERT_EQ_INT(formula.componentes()[i].subindice.valor(), subindice);
+		++i;
+	}
+}
+
+void verificarError(std::string_view texto, ErrorFormula esperado)
+{
+	const auto resultado = parsearFormula(texto);
+	ASSERT_TRUE(!resultado.ok());
+	if (!resultado.ok())
+	{
+		ASSERT_TRUE(resultado.error() == esperado);
+	}
+}
+
+} // namespace
 
 void test_formula()
 {
-	FormulaParseada f;
+	verificarComponentes("Fe2O3", {{"Fe", 2}, {"O", 3}});
 
-	ASSERT_TRUE(parsearFormula("Fe2O3", f) == ResultadoParseo::OK);
-	ASSERT_EQ_INT(f.cantidadComponentes, 2);
-	ASSERT_TRUE(std::strcmp(f.componentes[0].simbolo, "Fe") == 0);
-	ASSERT_EQ_INT(f.componentes[0].subindice, 2);
-	ASSERT_TRUE(std::strcmp(f.componentes[1].simbolo, "O") == 0);
-	ASSERT_EQ_INT(f.componentes[1].subindice, 3);
+	// Un simbolo sin subindice explicito vale 1.
+	verificarComponentes("NaCl", {{"Na", 1}, {"Cl", 1}});
 
-	// Símbolo sin subíndice explícito implica subíndice 1.
-	ASSERT_TRUE(parsearFormula("NaCl", f) == ResultadoParseo::OK);
-	ASSERT_EQ_INT(f.cantidadComponentes, 2);
-	ASSERT_EQ_INT(f.componentes[0].subindice, 1);
-	ASSERT_EQ_INT(f.componentes[1].subindice, 1);
+	// Grupo entre parentesis: queda como un unico componente.
+	verificarComponentes("Ca(OH)2", {{"Ca", 1}, {"OH", 2}});
+	verificarComponentes("Al2(SO4)3", {{"Al", 2}, {"SO4", 3}});
+	verificarComponentes("Na(OH)", {{"Na", 1}, {"OH", 1}});
 
-	ASSERT_TRUE(parsearFormula("", f) == ResultadoParseo::FORMULA_VACIA);
-	ASSERT_TRUE(parsearFormula("fe2O3", f) == ResultadoParseo::SIMBOLO_INVALIDO);
-	ASSERT_TRUE(parsearFormula("123Fe", f) == ResultadoParseo::SIMBOLO_INVALIDO);
-	ASSERT_TRUE(parsearFormula("H0", f) == ResultadoParseo::SUBINDICE_INVALIDO);
+	// Subindices de mas de un digito.
+	verificarComponentes("C12H22", {{"C", 12}, {"H", 22}});
 
-	// Grupo entre paréntesis: se guarda como un único componente con el
-	// contenido literal del grupo como símbolo.
-	ASSERT_TRUE(parsearFormula("Ca(OH)2", f) == ResultadoParseo::OK);
-	ASSERT_EQ_INT(f.cantidadComponentes, 2);
-	ASSERT_TRUE(std::strcmp(f.componentes[0].simbolo, "Ca") == 0);
-	ASSERT_EQ_INT(f.componentes[0].subindice, 1);
-	ASSERT_TRUE(std::strcmp(f.componentes[1].simbolo, "OH") == 0);
-	ASSERT_EQ_INT(f.componentes[1].subindice, 2);
+	verificarError("", ErrorFormula::VACIA);
+	verificarError("fe2O3", ErrorFormula::SIMBOLO_INVALIDO);
+	verificarError("123Fe", ErrorFormula::SIMBOLO_INVALIDO);
+	verificarError("H0", ErrorFormula::SUBINDICE_INVALIDO);
+	verificarError("Ca(OH", ErrorFormula::GRUPO_MAL_FORMADO);
+	verificarError("Ca()2", ErrorFormula::GRUPO_MAL_FORMADO);
+	verificarError("Ca((OH))2", ErrorFormula::GRUPO_MAL_FORMADO);
+	verificarError("HHeLiBeB", ErrorFormula::DEMASIADOS_COMPONENTES);
 
-	// Grupo entre paréntesis con radical de varias letras (sales oxisal).
-	ASSERT_TRUE(parsearFormula("Al2(SO4)3", f) == ResultadoParseo::OK);
-	ASSERT_EQ_INT(f.cantidadComponentes, 2);
-	ASSERT_TRUE(std::strcmp(f.componentes[1].simbolo, "SO4") == 0);
-	ASSERT_EQ_INT(f.componentes[1].subindice, 3);
+	// Consultas sobre una formula ya analizada.
+	const auto resultado = parsearFormula("Fe2O3");
+	ASSERT_TRUE(resultado.ok());
+	if (resultado.ok())
+	{
+		const Formula &formula = resultado.valor();
+		ASSERT_TRUE(formula.componente("O") != nullptr);
+		ASSERT_TRUE(formula.componente("Xx") == nullptr);
 
-	// Un grupo sin subíndice explícito implica subíndice 1.
-	ASSERT_TRUE(parsearFormula("Na(OH)", f) == ResultadoParseo::OK);
-	ASSERT_EQ_INT(f.componentes[1].subindice, 1);
+		const ComponenteFormula *metal = formula.unicoDistintoDe({"O"});
+		ASSERT_TRUE(metal != nullptr);
+		if (metal != nullptr)
+		{
+			ASSERT_EQ_STR(metal->simbolo, "Fe");
+		}
 
-	// Errores de formación de grupos.
-	ASSERT_TRUE(parsearFormula("Ca(OH", f) == ResultadoParseo::GRUPO_MAL_FORMADO);   // sin cerrar
-	ASSERT_TRUE(parsearFormula("Ca()2", f) == ResultadoParseo::GRUPO_MAL_FORMADO);   // vacío
-	ASSERT_TRUE(parsearFormula("Ca((OH))2", f) == ResultadoParseo::GRUPO_MAL_FORMADO); // anidado
+		// Si queda mas de un componente sin excluir, no hay "unico".
+		ASSERT_TRUE(formula.unicoDistintoDe({}) == nullptr);
+	}
 }
