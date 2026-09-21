@@ -20,6 +20,7 @@ void dibujarMenu()
 	std::printf("5)  Ingresar formula de acido oxacido\n");
 	std::printf("6)  Ingresar formula de base\n");
 	std::printf("7)  Ingresar formula de sal oxisal\n");
+	std::printf("8)  Detectar automaticamente (con explicacion paso a paso)\n");
 	std::printf("0)  Salir\n");
 }
 
@@ -40,7 +41,7 @@ static void leerFormula(char destino[TAM_MAX])
 }
 
 // Firma común de las funciones nomenclaturaStock*/nomenclaturaTradicional*.
-using CalculadoraNomenclatura = ResultadoNomenclatura (*)(const FormulaParseada &, char[TAM_MAX]);
+using CalculadoraNomenclatura = ResultadoNomenclatura (*)(const FormulaParseada &, char[TAM_MAX], Explicacion *);
 
 // Flujo compartido por las distintas opciones del menú: pide una fórmula,
 // la parsea, calcula su nomenclatura con la función indicada y reporta el
@@ -69,7 +70,7 @@ static void pedirFormulaYNombrar(const char *mensajeEntrada, CalculadoraNomencla
 	}
 
 	char nomenclatura[TAM_MAX];
-	ResultadoNomenclatura resultadoNomenclatura = calcular(parseada, nomenclatura);
+	ResultadoNomenclatura resultadoNomenclatura = calcular(parseada, nomenclatura, nullptr);
 	if (resultadoNomenclatura != ResultadoNomenclatura::OK)
 	{
 		std::cout << "\nError: " << mensajeError(resultadoNomenclatura) << "\n";
@@ -126,4 +127,48 @@ void salOxisal()
 	pedirFormulaYNombrar(
 		"Introduzca la formula de la sal oxisal de la que desea conocer su nomenclatura (ej. Al2(SO4)3 o CaCO3):",
 		nomenclaturaTradicionalSal);
+}
+
+void detectarAutomaticamente()
+{
+	char formula[TAM_MAX];
+
+	std::cout << "\nIntroduzca la formula del compuesto (sin indicar el tipo, ej. Fe2O3, HCl, Al2(SO4)3):";
+	leerFormula(formula);
+
+	if (formula[0] == '\0')
+	{
+		std::cout << "\nNo se ingreso ninguna formula.\n";
+		return;
+	}
+
+	std::cout << "La formula es: " << formula << "\n";
+
+	FormulaParseada parseada;
+	ResultadoParseo resultadoParseo = parsearFormula(formula, parseada);
+	if (resultadoParseo != ResultadoParseo::OK)
+	{
+		std::cout << "Error: " << mensajeError(resultadoParseo) << "\n";
+		return;
+	}
+
+	char nomenclatura[TAM_MAX];
+	CategoriaCompuesto categoria;
+	Explicacion explicacion;
+	ResultadoNomenclatura resultadoNomenclatura = detectarYNombrar(parseada, nomenclatura, categoria, &explicacion);
+
+	if (resultadoNomenclatura != ResultadoNomenclatura::OK)
+	{
+		std::cout << "No se pudo determinar el tipo de compuesto.\n";
+		std::cout << "Error: " << mensajeError(resultadoNomenclatura) << "\n";
+		return;
+	}
+
+	std::cout << "Tipo de compuesto detectado: " << nombreCategoria(categoria) << "\n";
+	std::cout << "\nRazonamiento:\n";
+	for (int i = 0; i < explicacion.cantidadPasos; i++)
+	{
+		std::cout << "  " << (i + 1) << ". " << explicacion.pasos[i] << "\n";
+	}
+	std::cout << "\nNomenclatura del compuesto: " << nomenclatura << "\n";
 }

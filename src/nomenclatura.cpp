@@ -1,6 +1,22 @@
 #include "nomenclatura.h"
+#include <cstdarg>
 #include <cstdio>
 #include <cstring>
+
+void agregarPaso(Explicacion *explicacion, const char *formato, ...)
+{
+	if (explicacion == nullptr || explicacion->cantidadPasos >= MAX_PASOS_EXPLICACION)
+	{
+		return;
+	}
+
+	va_list argumentos;
+	va_start(argumentos, formato);
+	std::vsnprintf(explicacion->pasos[explicacion->cantidadPasos], TAM_MAX_PASO, formato, argumentos);
+	va_end(argumentos);
+
+	explicacion->cantidadPasos++;
+}
 
 static int maximoComunDivisor(int a, int b)
 {
@@ -59,7 +75,8 @@ static bool separarElementoYOxigeno(const FormulaParseada &formula,
 	return elemento != nullptr && oxigeno != nullptr;
 }
 
-ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, char resultado[TAM_MAX])
+ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                              Explicacion *explicacion)
 {
 	resultado[0] = '\0';
 
@@ -70,11 +87,17 @@ ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, cha
 		return ResultadoNomenclatura::NO_ES_OXIDO;
 	}
 
+	agregarPaso(explicacion, "Se identifica el metal (%s, subindice %d) y el oxigeno (subindice %d).",
+	            metal->simbolo, metal->subindice, oxigeno->subindice);
+
 	const InfoElemento *infoMetal = buscarElemento(metal->simbolo);
 	if (infoMetal == nullptr)
 	{
 		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
 	}
+
+	agregarPaso(explicacion, "%s (%s) tiene %d valencia(s) conocida(s) para oxidos.",
+	            infoMetal->nombre, metal->simbolo, infoMetal->cantidadValencias);
 
 	// El oxígeno siempre actúa con valencia 2 en óxidos. Por notación de
 	// intercambio de valencias, MxOy con valencia(M) = v produce, antes de
@@ -100,23 +123,32 @@ ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, cha
 
 	if (valenciaDeducida == -1)
 	{
+		agregarPaso(explicacion, "Ninguna valencia conocida de %s reproduce la proporcion %d:%d (metal:oxigeno).",
+		            infoMetal->nombre, metal->subindice, oxigeno->subindice);
 		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
 	}
+
+	agregarPaso(explicacion, "La proporcion %d:%d (metal:oxigeno) corresponde a la valencia %d.",
+	            metal->subindice, oxigeno->subindice, valenciaDeducida);
 
 	if (infoMetal->cantidadValencias == 1)
 	{
 		// Elementos con una sola valencia no llevan número romano (convención Stock).
+		agregarPaso(explicacion, "%s tiene una unica valencia -> no se indica numero romano.", infoMetal->nombre);
 		std::snprintf(resultado, TAM_MAX, "oxido de %s", infoMetal->nombre);
 	}
 	else
 	{
+		agregarPaso(explicacion, "%s tiene mas de una valencia -> se indica con numero romano (%s).",
+		            infoMetal->nombre, aRomano(valenciaDeducida));
 		std::snprintf(resultado, TAM_MAX, "oxido de %s (%s)", infoMetal->nombre, aRomano(valenciaDeducida));
 	}
 
 	return ResultadoNomenclatura::OK;
 }
 
-ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, char resultado[TAM_MAX])
+ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                                 Explicacion *explicacion)
 {
 	resultado[0] = '\0';
 
@@ -127,11 +159,16 @@ ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, 
 		return ResultadoNomenclatura::NO_ES_PEROXIDO;
 	}
 
+	agregarPaso(explicacion, "Se identifica el metal (%s, subindice %d) y el oxigeno (subindice %d).",
+	            metal->simbolo, metal->subindice, oxigeno->subindice);
+
 	const InfoElemento *infoMetal = buscarElemento(metal->simbolo);
 	if (infoMetal == nullptr)
 	{
 		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
 	}
+
+	agregarPaso(explicacion, "Se asume el grupo peroxo (O2)2-, donde cada oxigeno aporta valencia -1 (no -2 como en un oxido).");
 
 	// Un peróxido siempre contiene el grupo peroxo (O2)^2-, cada oxígeno del
 	// grupo aporta valencia -1 (no -2 como en un óxido normal). Por lo tanto
@@ -155,8 +192,13 @@ ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, 
 
 	if (valenciaDeducida == -1)
 	{
+		agregarPaso(explicacion, "Ninguna valencia conocida de %s reproduce subindice_O = subindice_metal * valencia.",
+		            infoMetal->nombre);
 		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
 	}
+
+	agregarPaso(explicacion, "%d = %d * %d confirma la valencia %d para %s.",
+	            oxigeno->subindice, metal->subindice, valenciaDeducida, valenciaDeducida, infoMetal->nombre);
 
 	std::snprintf(resultado, TAM_MAX, "peroxido de %s", infoMetal->nombre);
 	return ResultadoNomenclatura::OK;
@@ -196,7 +238,8 @@ static void formatearNombreTradicional(const char *raiz, int posicion, int total
 	std::snprintf(resultado, TAM_MAX, "anhidrido %s%s%s", prefijo, raiz, sufijo);
 }
 
-ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &formula, char resultado[TAM_MAX])
+ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                                        Explicacion *explicacion)
 {
 	resultado[0] = '\0';
 
@@ -207,11 +250,17 @@ ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &fo
 		return ResultadoNomenclatura::NO_ES_ANHIDRIDO;
 	}
 
+	agregarPaso(explicacion, "Se identifica el no metal (%s, subindice %d) y el oxigeno (subindice %d).",
+	            noMetalComp->simbolo, noMetalComp->subindice, oxigeno->subindice);
+
 	const InfoNoMetal *infoNoMetal = buscarNoMetal(noMetalComp->simbolo);
 	if (infoNoMetal == nullptr)
 	{
 		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
 	}
+
+	agregarPaso(explicacion, "%s (%s) tiene %d valencia(s) conocida(s) para anhidridos.",
+	            infoNoMetal->nombre, noMetalComp->simbolo, infoNoMetal->cantidadValencias);
 
 	// Mismo principio de intercambio de valencias que en óxidos: el oxígeno
 	// actúa con valencia 2, y se prueba cada valencia conocida del no metal
@@ -235,14 +284,25 @@ ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &fo
 
 	if (posicionValencia == -1)
 	{
+		agregarPaso(explicacion, "Ninguna valencia conocida de %s reproduce la proporcion %d:%d (no metal:oxigeno).",
+		            infoNoMetal->nombre, noMetalComp->subindice, oxigeno->subindice);
 		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
 	}
 
+	agregarPaso(explicacion, "La proporcion %d:%d corresponde a la valencia %d (posicion %d de %d en la lista ordenada).",
+	            noMetalComp->subindice, oxigeno->subindice, infoNoMetal->valencias[posicionValencia],
+	            posicionValencia + 1, infoNoMetal->cantidadValencias);
+
 	formatearNombreTradicional(infoNoMetal->raiz, posicionValencia, infoNoMetal->cantidadValencias, resultado);
+
+	agregarPaso(explicacion, "Segun la cantidad de valencias y la posicion, se arma el nombre con prefijo/sufijo tradicional: %s.",
+	            resultado);
+
 	return ResultadoNomenclatura::OK;
 }
 
-ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &formula, char resultado[TAM_MAX])
+ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                                        Explicacion *explicacion)
 {
 	resultado[0] = '\0';
 
@@ -271,11 +331,17 @@ ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &fo
 		return ResultadoNomenclatura::NO_ES_HIDRACIDO;
 	}
 
+	agregarPaso(explicacion, "Se identifica el hidrogeno (subindice %d) y el no metal (%s, subindice %d).",
+	            hidrogeno->subindice, noMetalComp->simbolo, noMetalComp->subindice);
+
 	const InfoHidracido *infoHidracido = buscarHidracido(noMetalComp->simbolo);
 	if (infoHidracido == nullptr)
 	{
 		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
 	}
+
+	agregarPaso(explicacion, "%s forma hidracido con %d hidrogeno(s) (valencia negativa fija, sin otras opciones).",
+	            noMetalComp->simbolo, infoHidracido->subindiceHidrogeno);
 
 	// A diferencia de óxidos/anhídridos, un hidrácido no tiene varias
 	// valencias posibles: el no metal siempre actúa con su única valencia
@@ -283,14 +349,19 @@ ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &fo
 	// exactamente (sin reducir, ya que H2S no se simplifica a HS).
 	if (hidrogeno->subindice != infoHidracido->subindiceHidrogeno || noMetalComp->subindice != 1)
 	{
+		agregarPaso(explicacion, "La formula no coincide con la proporcion esperada (H%d%s).",
+		            infoHidracido->subindiceHidrogeno, noMetalComp->simbolo);
 		return ResultadoNomenclatura::NO_ES_HIDRACIDO;
 	}
 
 	std::snprintf(resultado, TAM_MAX, "acido %shidrico", infoHidracido->raiz);
+	agregarPaso(explicacion, "El nombre se arma como 'acido' + raiz ('%s') + sufijo fijo 'hidrico'.", infoHidracido->raiz);
+
 	return ResultadoNomenclatura::OK;
 }
 
-ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &formula, char resultado[TAM_MAX])
+ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                                      Explicacion *explicacion)
 {
 	resultado[0] = '\0';
 
@@ -325,6 +396,9 @@ ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &form
 		return ResultadoNomenclatura::NO_ES_OXACIDO;
 	}
 
+	agregarPaso(explicacion, "Se identifican H(%d), %s(%d) y O(%d) en la formula.",
+	            hidrogeno->subindice, noMetalComp->simbolo, noMetalComp->subindice, oxigeno->subindice);
+
 	if (buscarNoMetal(noMetalComp->simbolo) == nullptr)
 	{
 		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
@@ -334,8 +408,14 @@ ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &form
 	                                                noMetalComp->subindice, oxigeno->subindice);
 	if (infoOxacido == nullptr)
 	{
+		agregarPaso(explicacion, "La formula H%d%s%dO%d no coincide con ningun oxacido tabulado de %s.",
+		            hidrogeno->subindice, noMetalComp->simbolo, noMetalComp->subindice, oxigeno->subindice,
+		            noMetalComp->simbolo);
 		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
 	}
+
+	agregarPaso(explicacion, "Esa formula coincide exactamente con un oxacido conocido de %s (tabulado, no derivado).",
+	            noMetalComp->simbolo);
 
 	std::strncpy(resultado, infoOxacido->nombre, TAM_MAX - 1);
 	resultado[TAM_MAX - 1] = '\0';
@@ -418,7 +498,8 @@ static bool normalizarBase(const FormulaParseada &formula,
 	return false;
 }
 
-ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char resultado[TAM_MAX])
+ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                             Explicacion *explicacion)
 {
 	resultado[0] = '\0';
 
@@ -428,6 +509,9 @@ ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char
 	{
 		return ResultadoNomenclatura::NO_ES_BASE;
 	}
+
+	agregarPaso(explicacion, "Se identifica el metal (%s) y %d grupo(s) hidroxilo (OH).",
+	            metal->simbolo, subindiceHidroxilo);
 
 	const InfoElemento *infoMetal = buscarElemento(metal->simbolo);
 	if (infoMetal == nullptr)
@@ -453,8 +537,13 @@ ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char
 
 	if (valenciaDeducida == -1)
 	{
+		agregarPaso(explicacion, "Ninguna valencia conocida de %s es igual a %d grupos OH.",
+		            infoMetal->nombre, subindiceHidroxilo);
 		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
 	}
+
+	agregarPaso(explicacion, "El grupo OH tiene valencia 1, asi que %d grupos = valencia %d de %s.",
+	            subindiceHidroxilo, valenciaDeducida, infoMetal->nombre);
 
 	if (infoMetal->cantidadValencias == 1)
 	{
@@ -462,6 +551,8 @@ ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char
 	}
 	else
 	{
+		agregarPaso(explicacion, "%s tiene mas de una valencia -> se indica con numero romano (%s).",
+		            infoMetal->nombre, aRomano(valenciaDeducida));
 		std::snprintf(resultado, TAM_MAX, "hidroxido de %s (%s)", infoMetal->nombre, aRomano(valenciaDeducida));
 	}
 
@@ -569,7 +660,8 @@ static bool normalizarSal(const FormulaParseada &formula,
 	return false;
 }
 
-ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula, char resultado[TAM_MAX])
+ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                                  Explicacion *explicacion)
 {
 	resultado[0] = '\0';
 
@@ -580,6 +672,9 @@ ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula,
 	{
 		return ResultadoNomenclatura::NO_ES_SAL;
 	}
+
+	agregarPaso(explicacion, "Se identifica el metal (%s) y el radical %s (subindice %d).",
+	            metal->simbolo, formulaRadical, subindiceRadical);
 
 	const InfoElemento *infoMetal = buscarElemento(metal->simbolo);
 	if (infoMetal == nullptr)
@@ -592,6 +687,8 @@ ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula,
 	{
 		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
 	}
+
+	agregarPaso(explicacion, "El radical %s es %s, con carga -%d.", formulaRadical, infoRadical->nombre, infoRadical->carga);
 
 	// La fórmula equilibra cargas cuando subindice_metal * valencia_metal =
 	// subindice_radical * carga_radical (misma idea de intercambio de
@@ -609,8 +706,13 @@ ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula,
 
 	if (valenciaDeducida == -1)
 	{
+		agregarPaso(explicacion, "Ninguna valencia conocida de %s equilibra %d*valencia = %d*%d.",
+		            infoMetal->nombre, metal->subindice, subindiceRadical, infoRadical->carga);
 		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
 	}
+
+	agregarPaso(explicacion, "%d*%d = %d*%d confirma la valencia %d para %s.",
+	            metal->subindice, valenciaDeducida, subindiceRadical, infoRadical->carga, valenciaDeducida, infoMetal->nombre);
 
 	if (infoMetal->cantidadValencias == 1)
 	{
@@ -618,10 +720,97 @@ ResultadoNomenclatura nomenclaturaTradicionalSal(const FormulaParseada &formula,
 	}
 	else
 	{
+		agregarPaso(explicacion, "%s tiene mas de una valencia -> se indica con numero romano (%s).",
+		            infoMetal->nombre, aRomano(valenciaDeducida));
 		std::snprintf(resultado, TAM_MAX, "%s de %s (%s)", infoRadical->nombre, infoMetal->nombre, aRomano(valenciaDeducida));
 	}
 
 	return ResultadoNomenclatura::OK;
+}
+
+const char *nombreCategoria(CategoriaCompuesto categoria)
+{
+	switch (categoria)
+	{
+		case CategoriaCompuesto::OXIDO:           return "oxido";
+		case CategoriaCompuesto::PEROXIDO:        return "peroxido";
+		case CategoriaCompuesto::ANHIDRIDO:       return "anhidrido";
+		case CategoriaCompuesto::ACIDO_HIDRACIDO: return "acido hidracido";
+		case CategoriaCompuesto::ACIDO_OXACIDO:   return "acido oxacido";
+		case CategoriaCompuesto::BASE:            return "base";
+		case CategoriaCompuesto::SAL_OXISAL:      return "sal oxisal";
+	}
+	return "desconocido";
+}
+
+ResultadoNomenclatura detectarYNombrar(const FormulaParseada &formula, char resultado[TAM_MAX],
+                                        CategoriaCompuesto &categoriaDetectada, Explicacion *explicacion)
+{
+	// Orden de prueba: metal+O antes que no metal+O evita que un mismo par
+	// de símbolos se intente primero como anhídrido cuando en realidad es
+	// óxido (buscarElemento/buscarNoMetal no se solapan en la práctica, pero
+	// el orden por especificidad general reduce falsos positivos).
+	//
+	// Óxido antes que peróxido: para un metal con valencia v que también
+	// tiene valencia 1, la fórmula reducida de "óxido con esa v" puede
+	// coincidir con la de "peróxido con valencia 1" (p.ej. CuO es tanto
+	// "oxido de cobre (II)" como, formalmente, "peroxido de cobre" si Cu
+	// actuara con valencia 1) — se prioriza la lectura de óxido normal,
+	// que es la interpretación estándar en ausencia de más contexto.
+	struct Candidato {
+		CategoriaCompuesto categoria;
+		ResultadoNomenclatura (*calcular)(const FormulaParseada &, char[TAM_MAX], Explicacion *);
+	};
+
+	static const Candidato candidatos[] = {
+		{CategoriaCompuesto::OXIDO, nomenclaturaStockOxido},
+		{CategoriaCompuesto::PEROXIDO, nomenclaturaStockPeroxido},
+		{CategoriaCompuesto::ANHIDRIDO, nomenclaturaTradicionalAnhidrido},
+		{CategoriaCompuesto::ACIDO_HIDRACIDO, nomenclaturaTradicionalHidracido},
+		{CategoriaCompuesto::ACIDO_OXACIDO, nomenclaturaTradicionalOxacido},
+		{CategoriaCompuesto::BASE, nomenclaturaStockBase},
+		{CategoriaCompuesto::SAL_OXISAL, nomenclaturaTradicionalSal},
+	};
+
+	ResultadoNomenclatura ultimoError = ResultadoNomenclatura::FORMULA_INVALIDA;
+
+	for (const Candidato &candidato : candidatos)
+	{
+		char intento[TAM_MAX];
+		ResultadoNomenclatura r = candidato.calcular(formula, intento, explicacion);
+		if (r == ResultadoNomenclatura::OK)
+		{
+			categoriaDetectada = candidato.categoria;
+			std::strncpy(resultado, intento, TAM_MAX - 1);
+			resultado[TAM_MAX - 1] = '\0';
+			return ResultadoNomenclatura::OK;
+		}
+
+		// Un error "no es esta categoria" (el nombre no calzo con el patron)
+		// se descarta en silencio y se prueba la siguiente. Un error mas
+		// especifico (elemento desconocido, valencia no determinada) es mas
+		// informativo para el usuario si ninguna categoria termina calzando,
+		// así que se conserva como el mensaje final a reportar.
+		bool esRechazoDePatron = (r == ResultadoNomenclatura::NO_ES_OXIDO ||
+		                          r == ResultadoNomenclatura::NO_ES_PEROXIDO ||
+		                          r == ResultadoNomenclatura::NO_ES_ANHIDRIDO ||
+		                          r == ResultadoNomenclatura::NO_ES_HIDRACIDO ||
+		                          r == ResultadoNomenclatura::NO_ES_OXACIDO ||
+		                          r == ResultadoNomenclatura::NO_ES_BASE ||
+		                          r == ResultadoNomenclatura::NO_ES_SAL);
+		if (!esRechazoDePatron)
+		{
+			ultimoError = r;
+		}
+
+		if (explicacion != nullptr)
+		{
+			explicacion->cantidadPasos = 0; // se descartan los pasos del intento fallido
+		}
+	}
+
+	resultado[0] = '\0';
+	return ultimoError;
 }
 
 const char *mensajeError(ResultadoNomenclatura resultado)
@@ -631,7 +820,7 @@ const char *mensajeError(ResultadoNomenclatura resultado)
 		case ResultadoNomenclatura::OK:
 			return "Sin errores.";
 		case ResultadoNomenclatura::FORMULA_INVALIDA:
-			return "La formula no es quimicamente valida.";
+			return "La formula no corresponde a ninguna de las 7 categorias de compuesto que este programa reconoce.";
 		case ResultadoNomenclatura::NO_ES_OXIDO:
 			return "La formula no corresponde a un oxido (se esperaba metal + oxigeno).";
 		case ResultadoNomenclatura::NO_ES_PEROXIDO:

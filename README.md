@@ -2,7 +2,7 @@
 
 Programa de consola en C++ para practicar la nomenclatura de compuestos químicos inorgánicos (óxidos, peróxidos, anhídridos, ácidos hidrácidos y oxácidos, bases y sales oxisal), obteniendo su nomenclatura Stock a partir de la fórmula.
 
-> Proyecto educativo en desarrollo. Las 7 opciones del menú (óxidos, peróxidos, anhídridos, ácidos hidrácidos, ácidos oxácidos, bases y sales oxisal) funcionan de punta a punta.
+> Proyecto educativo en desarrollo. Las 7 opciones del menú (óxidos, peróxidos, anhídridos, ácidos hidrácidos, ácidos oxácidos, bases y sales oxisal) funcionan de punta a punta, además de un modo de **detección automática** que identifica la categoría a partir de la fórmula y explica el razonamiento paso a paso.
 
 ## Estructura del proyecto
 
@@ -32,7 +32,8 @@ cheminator/
 │   ├── main_tests.cpp
 │   ├── test_formula.cpp
 │   ├── test_elementos.cpp
-│   └── test_nomenclatura.cpp   # las 7 categorías de compuesto soportadas
+│   ├── test_nomenclatura.cpp   # las 7 categorías de compuesto soportadas
+│   └── test_deteccion.cpp      # detección automática de categoría
 ├── .github/workflows/build.yml  # CI: compila y corre los tests en cada push/PR
 ├── Makefile
 └── README.md
@@ -62,7 +63,24 @@ g++ -std=c++17 -Wall -Wextra -Iinclude -o cheminator src/*.cpp
 => 1
 Introduzca la formula del oxido del que desea conocer su nomenclatura stock (ej. Fe2O3): Fe2O3
 La formula es: Fe2O3
-Nomenclatura Stock del compuesto: oxido de Hierro (III)
+Nomenclatura del compuesto: oxido de Hierro (III)
+```
+
+También se puede pedir la fórmula sin indicar la categoría (opción 8), y el programa detecta el tipo de compuesto y explica su razonamiento:
+
+```
+=> 8
+Introduzca la formula del compuesto (sin indicar el tipo, ej. Fe2O3, HCl, Al2(SO4)3): Fe2O3
+La formula es: Fe2O3
+Tipo de compuesto detectado: oxido
+
+Razonamiento:
+  1. Se identifica el metal (Fe, subindice 2) y el oxigeno (subindice 3).
+  2. Hierro (Fe) tiene 2 valencia(s) conocida(s) para oxidos.
+  3. La proporcion 2:3 (metal:oxigeno) corresponde a la valencia 3.
+  4. Hierro tiene mas de una valencia -> se indica con numero romano (III).
+
+Nomenclatura del compuesto: oxido de Hierro (III)
 ```
 
 Metales soportados: H, Li, Na, K, Ca, Mg, Al, Zn, Ag, Cu, Fe, Au, Pb, Sn (ver [`src/elementos.cpp`](src/elementos.cpp)).
@@ -83,9 +101,12 @@ Radicales soportados para sales oxisal: carbonato, nitrito/nitrato, fosfito/fosf
 - [x] Nomenclatura tradicional para ácidos oxácidos (fórmulas tabuladas, no derivadas)
 - [x] Nomenclatura Stock para bases/hidróxidos (soporta "Ca(OH)2" y "NaOH")
 - [x] Nomenclatura tradicional para sales oxisal (soporta "Al2(SO4)3" y "Na2SO4")
+- [x] Detección automática de la categoría de un compuesto a partir de su fórmula, sin que el usuario la indique
+- [x] Explicación del razonamiento paso a paso (no solo el resultado final) para el modo de detección automática
 - [x] Pruebas automatizadas y CI en GitHub Actions
 - [ ] Nomenclatura Stock para anhídridos y oxácidos (además de la tradicional)
 - [ ] Ampliar la tabla de metales, no metales y radicales soportados
+- [ ] Formulación inversa: escribir el nombre en español y obtener la fórmula
 
 ## Licencia
 

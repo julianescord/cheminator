@@ -25,4 +25,9 @@ void base();
 // Pide una fórmula de sal oxisal y muestra su nomenclatura tradicional.
 void salOxisal();
 
+// Pide una fórmula sin que el usuario indique la categoría, detecta
+// automáticamente a qué tipo de compuesto corresponde, y muestra el
+// resultado junto con el razonamiento paso a paso.
+void detectarAutomaticamente();
+
 #endif // CHEMINATOR_MENU_H

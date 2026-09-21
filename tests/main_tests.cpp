@@ -10,6 +10,7 @@ void test_nomenclatura_hidracidos();
 void test_nomenclatura_oxacidos();
 void test_nomenclatura_bases();
 void test_nomenclatura_sales();
+void test_deteccion();
 
 int main()
 {
@@ -22,6 +23,7 @@ int main()
 	test_nomenclatura_oxacidos();
 	test_nomenclatura_bases();
 	test_nomenclatura_sales();
+	test_deteccion();
 
 	if (g_pruebasFallidas == 0)
 	{

@@ -43,6 +43,10 @@ int main()
 				salOxisal();
 				break;
 
+			case 8: // Deteccion automatica con explicacion
+				detectarAutomaticamente();
+				break;
+
 			case 0: // Salir
 				repetir = false;
 				break;
