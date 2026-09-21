@@ -6,6 +6,7 @@ void test_elementos();
 void test_nomenclatura();
 void test_nomenclatura_peroxidos();
 void test_nomenclatura_anhidridos();
+void test_nomenclatura_hidracidos();
 
 int main()
 {
@@ -14,6 +15,7 @@ int main()
 	test_nomenclatura();
 	test_nomenclatura_peroxidos();
 	test_nomenclatura_anhidridos();
+	test_nomenclatura_hidracidos();
 
 	if (g_pruebasFallidas == 0)
 	{

@@ -27,6 +27,10 @@ int main()
 				anhidrido();
 				break;
 
+			case 4: // Acidos hidracidos
+				acidoHidracido();
+				break;
+
 			case 0: // Salir
 				repetir = false;
 				break;

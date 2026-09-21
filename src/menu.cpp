@@ -39,7 +39,7 @@ static void leerFormula(char destino[TAM_MAX])
 	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-// Firma común de las funciones nomenclaturaStockOxido/nomenclaturaStockPeroxido.
+// Firma común de las funciones nomenclaturaStock*/nomenclaturaTradicional*.
 using CalculadoraNomenclatura = ResultadoNomenclatura (*)(const FormulaParseada &, char[TAM_MAX]);
 
 // Flujo compartido por las distintas opciones del menú: pide una fórmula,
@@ -76,7 +76,7 @@ static void pedirFormulaYNombrar(const char *mensajeEntrada, CalculadoraNomencla
 		return;
 	}
 
-	std::cout << "\nNomenclatura Stock del compuesto: " << nomenclatura << "\n";
+	std::cout << "\nNomenclatura del compuesto: " << nomenclatura << "\n";
 }
 
 void oxido()
@@ -98,4 +98,11 @@ void anhidrido()
 	pedirFormulaYNombrar(
 		"Introduzca la formula del anhidrido del que desea conocer su nomenclatura tradicional (ej. SO3):",
 		nomenclaturaTradicionalAnhidrido);
+}
+
+void acidoHidracido()
+{
+	pedirFormulaYNombrar(
+		"Introduzca la formula del acido hidracido del que desea conocer su nomenclatura (ej. HCl):",
+		nomenclaturaTradicionalHidracido);
 }

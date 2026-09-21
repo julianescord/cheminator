@@ -39,6 +39,18 @@ static void verificarAnhidrido(const char *formulaTexto, const char *esperado)
 	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
 }
 
+static void verificarHidracido(const char *formulaTexto, const char *esperado)
+{
+	FormulaParseada f;
+	ResultadoParseo rp = parsearFormula(formulaTexto, f);
+	ASSERT_TRUE(rp == ResultadoParseo::OK);
+
+	char resultado[TAM_MAX];
+	ResultadoNomenclatura rn = nomenclaturaTradicionalHidracido(f, resultado);
+	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
+	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
+}
+
 void test_nomenclatura()
 {
 	// Metales con una sola valencia: sin número romano.
@@ -127,4 +139,34 @@ void test_nomenclatura_anhidridos()
 
 	parsearFormula("NO", f); // N valencia 2 no esta en la tabla de valencias de anhidridos
 	ASSERT_TRUE(nomenclaturaTradicionalAnhidrido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+}
+
+void test_nomenclatura_hidracidos()
+{
+	// Halogenos: un solo H (valencia -1 como anion).
+	verificarHidracido("HCl", "acido clorhidrico");
+	verificarHidracido("HF", "acido fluorhidrico");
+	verificarHidracido("HBr", "acido bromhidrico");
+	verificarHidracido("HI", "acido iodhidrico");
+
+	// Calcogenos: dos H (valencia -2 como anion).
+	verificarHidracido("H2S", "acido sulfhidrico");
+	verificarHidracido("H2Se", "acido selenhidrico");
+	verificarHidracido("H2Te", "acido telurhidrico");
+
+	// Casos de error.
+	FormulaParseada f;
+	char resultado[TAM_MAX];
+
+	parsearFormula("NaCl", f); // no tiene hidrogeno
+	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::NO_ES_HIDRACIDO);
+
+	parsearFormula("H2O", f); // O no forma hidracido comun en esta tabla
+	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
+
+	parsearFormula("H3S", f); // proporcion incorrecta (S deberia llevar 2 H, no 3)
+	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::NO_ES_HIDRACIDO);
+
+	parsearFormula("HCl2", f); // proporcion incorrecta (Cl deberia tener subindice 1)
+	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::NO_ES_HIDRACIDO);
 }

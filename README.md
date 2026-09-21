@@ -2,7 +2,7 @@
 
 Programa de consola en C++ para practicar la nomenclatura de compuestos químicos inorgánicos (óxidos, peróxidos, anhídridos, ácidos hidrácidos y oxácidos, bases y sales oxisal), obteniendo su nomenclatura Stock a partir de la fórmula.
 
-> Proyecto educativo en desarrollo. El menú principal y la nomenclatura de óxidos, peróxidos y anhídridos funcionan de punta a punta; el resto de opciones (ácidos, bases, sales) están planificadas pero aún no implementadas.
+> Proyecto educativo en desarrollo. El menú principal y la nomenclatura de óxidos, peróxidos, anhídridos y ácidos hidrácidos funcionan de punta a punta; el resto de opciones (ácidos oxácidos, bases, sales) están planificadas pero aún no implementadas.
 
 ## Estructura del proyecto
 
@@ -10,13 +10,15 @@ Programa de consola en C++ para practicar la nomenclatura de compuestos químico
 cheminator/
 ├── include/              # Declaraciones (headers)
 │   ├── elementos.h       # Tabla de metales: símbolo, nombre, valencias
-│   ├── no_metales.h      # Tabla de no metales: símbolo, nombre, raíz, valencias
+│   ├── no_metales.h      # Tabla de no metales: símbolo, nombre, raíz, valencias (para anhídridos)
+│   ├── hidracidos.h      # Tabla de no metales formadores de ácidos hidrácidos
 │   ├── formula.h         # Parseo de fórmulas químicas
 │   ├── menu.h            # Menú y flujo de cada opción
 │   └── nomenclatura.h    # Reglas de nomenclatura (Stock y tradicional)
 ├── src/                  # Implementación
 │   ├── elementos.cpp
 │   ├── no_metales.cpp
+│   ├── hidracidos.cpp
 │   ├── formula.cpp
 │   ├── menu.cpp
 │   ├── nomenclatura.cpp
@@ -26,7 +28,7 @@ cheminator/
 │   ├── main_tests.cpp
 │   ├── test_formula.cpp
 │   ├── test_elementos.cpp
-│   └── test_nomenclatura.cpp   # óxidos, peróxidos y anhídridos
+│   └── test_nomenclatura.cpp   # óxidos, peróxidos, anhídridos e hidrácidos
 ├── .github/workflows/build.yml  # CI: compila y corre los tests en cada push/PR
 ├── Makefile
 └── README.md
@@ -60,7 +62,8 @@ Nomenclatura Stock del compuesto: oxido de Hierro (III)
 ```
 
 Metales soportados: H, Li, Na, K, Ca, Mg, Al, Zn, Ag, Cu, Fe, Au, Pb, Sn (ver [`src/elementos.cpp`](src/elementos.cpp)).
-No metales soportados (para anhídridos): C, N, P, S, Cl, Br, I (ver [`src/no_metales.cpp`](src/no_metales.cpp)).
+No metales soportados para anhídridos: C, N, P, S, Cl, Br, I (ver [`src/no_metales.cpp`](src/no_metales.cpp)).
+No metales soportados para ácidos hidrácidos: F, Cl, Br, I, S, Se, Te (ver [`src/hidracidos.cpp`](src/hidracidos.cpp)).
 
 ## Estado / Roadmap
 
@@ -70,9 +73,10 @@ No metales soportados (para anhídridos): C, N, P, S, Cl, Br, I (ver [`src/no_me
 - [x] Nomenclatura Stock completa para óxidos (deducción de valencia a partir de la fórmula)
 - [x] Nomenclatura Stock completa para peróxidos (grupo peroxo O2, valencia -1 por átomo)
 - [x] Nomenclatura tradicional para anhídridos (sufijos -oso/-ico, prefijos hipo-/per-)
+- [x] Nomenclatura tradicional para ácidos hidrácidos (sufijo -hidrico)
 - [x] Pruebas automatizadas y CI en GitHub Actions
 - [ ] Nomenclatura Stock para anhídridos (además de la tradicional)
-- [ ] Ácidos hidrácidos y oxácidos
+- [ ] Ácidos oxácidos
 - [ ] Bases
 - [ ] Sales oxisal
 

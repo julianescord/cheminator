@@ -242,6 +242,54 @@ ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &fo
 	return ResultadoNomenclatura::OK;
 }
 
+ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &formula, char resultado[TAM_MAX])
+{
+	resultado[0] = '\0';
+
+	if (formula.cantidadComponentes != 2)
+	{
+		return ResultadoNomenclatura::NO_ES_HIDRACIDO;
+	}
+
+	const ComponenteFormula *hidrogeno = nullptr;
+	const ComponenteFormula *noMetalComp = nullptr;
+
+	for (int i = 0; i < formula.cantidadComponentes; i++)
+	{
+		if (std::strcmp(formula.componentes[i].simbolo, "H") == 0)
+		{
+			hidrogeno = &formula.componentes[i];
+		}
+		else
+		{
+			noMetalComp = &formula.componentes[i];
+		}
+	}
+
+	if (hidrogeno == nullptr || noMetalComp == nullptr)
+	{
+		return ResultadoNomenclatura::NO_ES_HIDRACIDO;
+	}
+
+	const InfoHidracido *infoHidracido = buscarHidracido(noMetalComp->simbolo);
+	if (infoHidracido == nullptr)
+	{
+		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
+	}
+
+	// A diferencia de óxidos/anhídridos, un hidrácido no tiene varias
+	// valencias posibles: el no metal siempre actúa con su única valencia
+	// negativa como anión, así que el subíndice de H debe coincidir
+	// exactamente (sin reducir, ya que H2S no se simplifica a HS).
+	if (hidrogeno->subindice != infoHidracido->subindiceHidrogeno || noMetalComp->subindice != 1)
+	{
+		return ResultadoNomenclatura::NO_ES_HIDRACIDO;
+	}
+
+	std::snprintf(resultado, TAM_MAX, "acido %shidrico", infoHidracido->raiz);
+	return ResultadoNomenclatura::OK;
+}
+
 const char *mensajeError(ResultadoNomenclatura resultado)
 {
 	switch (resultado)
@@ -256,6 +304,8 @@ const char *mensajeError(ResultadoNomenclatura resultado)
 			return "La formula no corresponde a un peroxido (se esperaba metal + grupo peroxo O2).";
 		case ResultadoNomenclatura::NO_ES_ANHIDRIDO:
 			return "La formula no corresponde a un anhidrido (se esperaba no metal + oxigeno).";
+		case ResultadoNomenclatura::NO_ES_HIDRACIDO:
+			return "La formula no corresponde a un acido hidracido (se esperaba H + no metal en la proporcion correcta).";
 		case ResultadoNomenclatura::ELEMENTO_DESCONOCIDO:
 			return "El elemento de la formula no esta en la tabla de elementos/no metales soportados.";
 		case ResultadoNomenclatura::VALENCIA_NO_DETERMINADA:
