@@ -13,8 +13,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Compilar el programa
-        run: make
+      - name: Configurar
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compilar
+        run: cmake --build build
 
       - name: Ejecutar pruebas
-        run: make test
+        run: ctest --test-dir build --output-on-failure
+
+  # Verifica que la libreria compile por si sola, sin el programa de consola
+  # ni las pruebas: es el modo en que la consume otro software.
+  solo-libreria:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar solo la libreria
+        run: >
+          cmake -S . -B build-lib
+          -DCMAKE_BUILD_TYPE=Release
+          -DCHEMINATOR_BUILD_CLI=OFF
+          -DCHEMINATOR_BUILD_TESTS=OFF
+
+      - name: Compilar
+        run: cmake --build build-lib
+
+      - name: Verificar instalacion
+        run: cmake --install build-lib --prefix ./instalada && ls -R ./instalada

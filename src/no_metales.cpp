@@ -1,4 +1,4 @@
-#include "no_metales.h"
+#include "cheminator/no_metales.hpp"
 #include <cstring>
 
 // Tabla de no metales típicos de un curso de nomenclatura inorgánica básica,

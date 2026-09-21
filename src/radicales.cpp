@@ -1,4 +1,4 @@
-#include "radicales.h"
+#include "cheminator/radicales.hpp"
 #include <cstring>
 
 // Radicales (aniones poliatómicos) derivados de los ácidos oxácidos

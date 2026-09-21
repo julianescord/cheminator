@@ -1,11 +1,11 @@
-#include "menu.h"
-#include "elementos.h"
-#include "formula.h"
-#include "nomenclatura.h"
+#include "menu.hpp"
+#include "cheminator/elementos.hpp"
+#include "cheminator/formula.hpp"
+#include "cheminator/nomenclatura.hpp"
 #include <cstdio>
-#include <iomanip>
 #include <iostream>
 #include <limits>
+#include <string>
 
 void dibujarMenu()
 {
@@ -24,20 +24,26 @@ void dibujarMenu()
 	std::printf("0)  Salir\n");
 }
 
-// Lee una fórmula desde stdin de forma segura: acota la lectura al tamaño del
-// buffer y descarta el resto de la línea si el usuario escribió de más.
-static void leerFormula(char destino[TAM_MAX])
+// Lee una fórmula desde stdin y la devuelve como std::string, que crece sola
+// según lo que escriba el usuario. Antes esto leía sobre un char[] usando
+// `std::cin >> std::setw(n) >> puntero`, pero C++20 eliminó esa sobrecarga
+// de operator>> para punteros crudos (P0487R1) precisamente porque no puede
+// conocer el tamaño del buffer y es una fuente clásica de desbordamiento.
+static std::string leerFormula()
 {
-	std::cin >> std::setw(TAM_MAX) >> destino;
+	std::string destino;
+	std::cin >> destino;
 
 	if (std::cin.fail())
 	{
 		std::cin.clear();
-		destino[0] = '\0';
+		destino.clear();
 	}
 	// Descarta cualquier resto de la línea (p.ej. espacios extra u otro token)
 	// para que la siguiente lectura del menú no herede entrada sobrante.
 	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+	return destino;
 }
 
 // Firma común de las funciones nomenclaturaStock*/nomenclaturaTradicional*.
@@ -48,12 +54,10 @@ using CalculadoraNomenclatura = ResultadoNomenclatura (*)(const FormulaParseada 
 // resultado o el error correspondiente.
 static void pedirFormulaYNombrar(const char *mensajeEntrada, CalculadoraNomenclatura calcular)
 {
-	char formula[TAM_MAX];
-
 	std::cout << "\n" << mensajeEntrada;
-	leerFormula(formula);
+	const std::string formula = leerFormula();
 
-	if (formula[0] == '\0')
+	if (formula.empty())
 	{
 		std::cout << "\nNo se ingreso ninguna formula.\n";
 		return;
@@ -62,7 +66,7 @@ static void pedirFormulaYNombrar(const char *mensajeEntrada, CalculadoraNomencla
 	std::cout << "La formula es: " << formula;
 
 	FormulaParseada parseada;
-	ResultadoParseo resultadoParseo = parsearFormula(formula, parseada);
+	ResultadoParseo resultadoParseo = parsearFormula(formula.c_str(), parseada);
 	if (resultadoParseo != ResultadoParseo::OK)
 	{
 		std::cout << "\nError: " << mensajeError(resultadoParseo) << "\n";
@@ -131,12 +135,10 @@ void salOxisal()
 
 void detectarAutomaticamente()
 {
-	char formula[TAM_MAX];
-
 	std::cout << "\nIntroduzca la formula del compuesto (sin indicar el tipo, ej. Fe2O3, HCl, Al2(SO4)3):";
-	leerFormula(formula);
+	const std::string formula = leerFormula();
 
-	if (formula[0] == '\0')
+	if (formula.empty())
 	{
 		std::cout << "\nNo se ingreso ninguna formula.\n";
 		return;
@@ -145,7 +147,7 @@ void detectarAutomaticamente()
 	std::cout << "La formula es: " << formula << "\n";
 
 	FormulaParseada parseada;
-	ResultadoParseo resultadoParseo = parsearFormula(formula, parseada);
+	ResultadoParseo resultadoParseo = parsearFormula(formula.c_str(), parseada);
 	if (resultadoParseo != ResultadoParseo::OK)
 	{
 		std::cout << "Error: " << mensajeError(resultadoParseo) << "\n";

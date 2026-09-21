@@ -1,7 +1,7 @@
 #ifndef CHEMINATOR_NO_METALES_H
 #define CHEMINATOR_NO_METALES_H
 
-#include "elementos.h"
+#include "cheminator/elementos.hpp"
 
 // Máximo número de valencias que puede tener un no metal en esta tabla.
 constexpr int MAX_VALENCIAS_NO_METAL = 4;

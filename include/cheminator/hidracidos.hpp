@@ -1,7 +1,7 @@
 #ifndef CHEMINATOR_HIDRACIDOS_H
 #define CHEMINATOR_HIDRACIDOS_H
 
-#include "elementos.h"
+#include "cheminator/elementos.hpp"
 
 // Un no metal que forma ácido hidrácido con el hidrógeno (HxE), con la
 // cantidad de átomos de H que le corresponde por su valencia como anión

@@ -1,4 +1,4 @@
-#include "hidracidos.h"
+#include "cheminator/hidracidos.hpp"
 #include <cstring>
 
 // No metales que forman ácidos hidrácidos comunes en un curso de

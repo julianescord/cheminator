@@ -1,4 +1,4 @@
-#include "nomenclatura.h"
+#include "cheminator/nomenclatura.hpp"
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>

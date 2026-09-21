@@ -1,7 +1,7 @@
 #ifndef CHEMINATOR_FORMULA_H
 #define CHEMINATOR_FORMULA_H
 
-#include "elementos.h"
+#include "cheminator/elementos.hpp"
 
 // Un componente de una fórmula: un símbolo de elemento (o, si viene entre
 // paréntesis, el contenido completo del grupo, p.ej. "OH") y su subíndice.

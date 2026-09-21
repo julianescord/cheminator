@@ -1,4 +1,4 @@
-#include "oxacidos.h"
+#include "cheminator/oxacidos.hpp"
 #include <cstring>
 
 // Fórmulas y nombres verificados manualmente contra la nomenclatura

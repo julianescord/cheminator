@@ -1,26 +1,22 @@
-CXX := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -Iinclude
-SRC := $(wildcard src/*.cpp)
-LIB_SRC := $(filter-out src/main.cpp,$(SRC))
-TEST_SRC := $(wildcard tests/*.cpp)
-BIN := cheminator
-TEST_BIN := run_tests
+# Envoltorio fino sobre CMake, para que los comandos de siempre sigan
+# funcionando sin tener que recordar la invocacion de CMake.
+# La configuracion real del proyecto vive en CMakeLists.txt.
 
-.PHONY: all test clean run
+BUILD_DIR := build
 
-all: $(BIN)
+.PHONY: all configure test run clean
 
-$(BIN): $(SRC)
-	$(CXX) $(CXXFLAGS) -o $(BIN) $(SRC)
+all: configure
+	@cmake --build $(BUILD_DIR)
 
-test: $(TEST_BIN)
-	./$(TEST_BIN)
+configure:
+	@cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
 
-$(TEST_BIN): $(LIB_SRC) $(TEST_SRC)
-	$(CXX) $(CXXFLAGS) -Itests -o $(TEST_BIN) $(LIB_SRC) $(TEST_SRC)
+test: all
+	@ctest --test-dir $(BUILD_DIR) --output-on-failure
 
-run: $(BIN)
-	./$(BIN)
+run: all
+	@./$(BUILD_DIR)/cheminator
 
 clean:
-	rm -f $(BIN) $(TEST_BIN)
+	@rm -rf $(BUILD_DIR)

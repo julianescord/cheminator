@@ -1,5 +1,5 @@
-#include "formula.h"
-#include "nomenclatura.h"
+#include "cheminator/formula.hpp"
+#include "cheminator/nomenclatura.hpp"
 #include "test_runner.h"
 #include <cstring>
 

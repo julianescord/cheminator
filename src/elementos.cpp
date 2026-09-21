@@ -1,4 +1,4 @@
-#include "elementos.h"
+#include "cheminator/elementos.hpp"
 #include <cstring>
 
 // Tabla de elementos conocidos: símbolo, nombre y valencias positivas típicas

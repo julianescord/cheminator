@@ -1,7 +1,7 @@
 #ifndef CHEMINATOR_RADICALES_H
 #define CHEMINATOR_RADICALES_H
 
-#include "elementos.h"
+#include "cheminator/elementos.hpp"
 
 // Un radical (anión poliatómico) conocido, derivado de un ácido oxácido al
 // quitarle los hidrógenos (p.ej. H2SO4 -> SO4, carga -2 -> "sulfato").

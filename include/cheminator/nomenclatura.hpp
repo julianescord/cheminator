@@ -1,12 +1,12 @@
 #ifndef CHEMINATOR_NOMENCLATURA_H
 #define CHEMINATOR_NOMENCLATURA_H
 
-#include "elementos.h"
-#include "formula.h"
-#include "no_metales.h"
-#include "hidracidos.h"
-#include "oxacidos.h"
-#include "radicales.h"
+#include "cheminator/elementos.hpp"
+#include "cheminator/formula.hpp"
+#include "cheminator/no_metales.hpp"
+#include "cheminator/hidracidos.hpp"
+#include "cheminator/oxacidos.hpp"
+#include "cheminator/radicales.hpp"
 
 // Máximo número de líneas de razonamiento que registra una Explicacion, y
 // longitud máxima de cada línea (más holgada que TAM_MAX porque una línea de

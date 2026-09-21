@@ -1,4 +1,4 @@
-#include "formula.h"
+#include "cheminator/formula.hpp"
 #include "test_runner.h"
 #include <cstring>
 

@@ -1,7 +1,7 @@
 #ifndef CHEMINATOR_OXACIDOS_H
 #define CHEMINATOR_OXACIDOS_H
 
-#include "elementos.h"
+#include "cheminator/elementos.hpp"
 
 // Un ácido oxácido conocido: la fórmula HxEyOz (ya en su forma reducida
 // estándar, no derivada aritméticamente) que corresponde a un no metal con
