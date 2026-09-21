@@ -1,5 +1,6 @@
 # Binarios compilados
 cheminator
+run_tests
 *.exe
 *.out
 *.o

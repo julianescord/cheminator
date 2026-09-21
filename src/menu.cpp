@@ -1,7 +1,11 @@
 #include "menu.h"
 #include "elementos.h"
+#include "formula.h"
+#include "nomenclatura.h"
 #include <cstdio>
+#include <iomanip>
 #include <iostream>
+#include <limits>
 
 void dibujarMenu()
 {
@@ -19,24 +23,52 @@ void dibujarMenu()
 	std::printf("0)  Salir\n");
 }
 
+// Lee una fórmula desde stdin de forma segura: acota la lectura al tamaño del
+// buffer y descarta el resto de la línea si el usuario escribió de más.
+static void leerFormula(char destino[TAM_MAX])
+{
+	std::cin >> std::setw(TAM_MAX) >> destino;
+
+	if (std::cin.fail())
+	{
+		std::cin.clear();
+		destino[0] = '\0';
+	}
+	// Descarta cualquier resto de la línea (p.ej. espacios extra u otro token)
+	// para que la siguiente lectura del menú no herede entrada sobrante.
+	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+
 void oxido()
 {
 	char formula[TAM_MAX];
+
+	std::cout << "\nIntroduzca la formula del oxido del que desea conocer su nomenclatura stock (ej. Fe2O3):";
+	leerFormula(formula);
+
+	if (formula[0] == '\0')
+	{
+		std::cout << "\nNo se ingreso ninguna formula.\n";
+		return;
+	}
+
+	std::cout << "La formula es: " << formula;
+
+	FormulaParseada parseada;
+	ResultadoParseo resultadoParseo = parsearFormula(formula, parseada);
+	if (resultadoParseo != ResultadoParseo::OK)
+	{
+		std::cout << "\nError: " << mensajeError(resultadoParseo) << "\n";
+		return;
+	}
+
 	char nomenclatura[TAM_MAX];
-
-	std::cout << "\nIntroduzca la formula del oxido del que desea conocer su nomenclatura stock:";
-	std::cin >> formula;
-
-	obtenerNombreElemento(formula, nomenclatura);
-
-	std::cout << "La formula es:" << formula;
-	std::cout << "\nNomenclatura Stock del compuesto:";
-	if (nomenclatura[0] != '\0')
+	ResultadoNomenclatura resultadoNomenclatura = nomenclaturaStockOxido(parseada, nomenclatura);
+	if (resultadoNomenclatura != ResultadoNomenclatura::OK)
 	{
-		std::cout << nomenclatura;
+		std::cout << "\nError: " << mensajeError(resultadoNomenclatura) << "\n";
+		return;
 	}
-	else
-	{
-		std::cout << "(elemento no reconocido todavia)";
-	}
+
+	std::cout << "\nNomenclatura Stock del compuesto: " << nomenclatura << "\n";
 }
