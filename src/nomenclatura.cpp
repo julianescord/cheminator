@@ -29,13 +29,14 @@ static const char *aRomano(int numero)
 	}
 }
 
-// Separa una fórmula de dos componentes en su parte metálica y su oxígeno.
-// Devuelve false si la fórmula no tiene exactamente esa forma (metal + "O").
-static bool separarMetalYOxigeno(const FormulaParseada &formula,
-                                  const ComponenteFormula *&metal,
-                                  const ComponenteFormula *&oxigeno)
+// Separa una fórmula de dos componentes en un elemento y su oxígeno.
+// Devuelve false si la fórmula no tiene exactamente esa forma (elemento + "O").
+// Sirve tanto para metal+O (óxidos, peróxidos) como para no metal+O (anhídridos).
+static bool separarElementoYOxigeno(const FormulaParseada &formula,
+                                     const ComponenteFormula *&elemento,
+                                     const ComponenteFormula *&oxigeno)
 {
-	metal = nullptr;
+	elemento = nullptr;
 	oxigeno = nullptr;
 
 	if (formula.cantidadComponentes != 2)
@@ -51,11 +52,11 @@ static bool separarMetalYOxigeno(const FormulaParseada &formula,
 		}
 		else
 		{
-			metal = &formula.componentes[i];
+			elemento = &formula.componentes[i];
 		}
 	}
 
-	return metal != nullptr && oxigeno != nullptr;
+	return elemento != nullptr && oxigeno != nullptr;
 }
 
 ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, char resultado[TAM_MAX])
@@ -64,7 +65,7 @@ ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, cha
 
 	const ComponenteFormula *metal = nullptr;
 	const ComponenteFormula *oxigeno = nullptr;
-	if (!separarMetalYOxigeno(formula, metal, oxigeno))
+	if (!separarElementoYOxigeno(formula, metal, oxigeno))
 	{
 		return ResultadoNomenclatura::NO_ES_OXIDO;
 	}
@@ -121,7 +122,7 @@ ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, 
 
 	const ComponenteFormula *metal = nullptr;
 	const ComponenteFormula *oxigeno = nullptr;
-	if (!separarMetalYOxigeno(formula, metal, oxigeno))
+	if (!separarElementoYOxigeno(formula, metal, oxigeno))
 	{
 		return ResultadoNomenclatura::NO_ES_PEROXIDO;
 	}
@@ -161,6 +162,86 @@ ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, 
 	return ResultadoNomenclatura::OK;
 }
 
+// Arma el nombre tradicional ("hipo-...-oso", "-oso", "-ico", "per-...-ico")
+// a partir de la raíz del no metal y la posición (0-indexada) que ocupa la
+// valencia usada dentro de la lista ordenada de valencias del no metal.
+static void formatearNombreTradicional(const char *raiz, int posicion, int totalValencias, char resultado[TAM_MAX])
+{
+	const char *prefijo = "";
+	const char *sufijo = "ico";
+
+	if (totalValencias == 1)
+	{
+		// Un no metal con una sola valencia siempre usa el sufijo -ico.
+		sufijo = "ico";
+	}
+	else if (totalValencias == 2)
+	{
+		sufijo = (posicion == 0) ? "oso" : "ico";
+	}
+	else if (totalValencias == 3)
+	{
+		if (posicion == 0) { prefijo = "hipo"; sufijo = "oso"; }
+		else if (posicion == 1) { sufijo = "oso"; }
+		else { sufijo = "ico"; }
+	}
+	else // 4 valencias
+	{
+		if (posicion == 0) { prefijo = "hipo"; sufijo = "oso"; }
+		else if (posicion == 1) { sufijo = "oso"; }
+		else if (posicion == 2) { sufijo = "ico"; }
+		else { prefijo = "per"; sufijo = "ico"; }
+	}
+
+	std::snprintf(resultado, TAM_MAX, "anhidrido %s%s%s", prefijo, raiz, sufijo);
+}
+
+ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &formula, char resultado[TAM_MAX])
+{
+	resultado[0] = '\0';
+
+	const ComponenteFormula *noMetalComp = nullptr;
+	const ComponenteFormula *oxigeno = nullptr;
+	if (!separarElementoYOxigeno(formula, noMetalComp, oxigeno))
+	{
+		return ResultadoNomenclatura::NO_ES_ANHIDRIDO;
+	}
+
+	const InfoNoMetal *infoNoMetal = buscarNoMetal(noMetalComp->simbolo);
+	if (infoNoMetal == nullptr)
+	{
+		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
+	}
+
+	// Mismo principio de intercambio de valencias que en óxidos: el oxígeno
+	// actúa con valencia 2, y se prueba cada valencia conocida del no metal
+	// hasta encontrar la que reproduce los subíndices de la fórmula ingresada.
+	constexpr int VALENCIA_OXIGENO = 2;
+	int posicionValencia = -1;
+
+	for (int i = 0; i < infoNoMetal->cantidadValencias; i++)
+	{
+		int v = infoNoMetal->valencias[i];
+		int mcd = maximoComunDivisor(VALENCIA_OXIGENO, v);
+		int xEsperado = VALENCIA_OXIGENO / mcd; // subíndice del no metal
+		int yEsperado = v / mcd;                // subíndice del oxígeno
+
+		if (noMetalComp->subindice == xEsperado && oxigeno->subindice == yEsperado)
+		{
+			posicionValencia = i;
+			break;
+		}
+	}
+
+	if (posicionValencia == -1)
+	{
+		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
+	}
+
+	formatearNombreTradicional(infoNoMetal->raiz, posicionValencia, infoNoMetal->cantidadValencias, resultado);
+	return ResultadoNomenclatura::OK;
+}
+
 const char *mensajeError(ResultadoNomenclatura resultado)
 {
 	switch (resultado)
@@ -173,8 +254,10 @@ const char *mensajeError(ResultadoNomenclatura resultado)
 			return "La formula no corresponde a un oxido (se esperaba metal + oxigeno).";
 		case ResultadoNomenclatura::NO_ES_PEROXIDO:
 			return "La formula no corresponde a un peroxido (se esperaba metal + grupo peroxo O2).";
+		case ResultadoNomenclatura::NO_ES_ANHIDRIDO:
+			return "La formula no corresponde a un anhidrido (se esperaba no metal + oxigeno).";
 		case ResultadoNomenclatura::ELEMENTO_DESCONOCIDO:
-			return "El elemento metalico de la formula no esta en la tabla de elementos soportados.";
+			return "El elemento de la formula no esta en la tabla de elementos/no metales soportados.";
 		case ResultadoNomenclatura::VALENCIA_NO_DETERMINADA:
 			return "La proporcion de la formula no corresponde a ninguna valencia conocida del metal.";
 	}

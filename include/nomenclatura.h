@@ -3,12 +3,14 @@
 
 #include "elementos.h"
 #include "formula.h"
+#include "no_metales.h"
 
 enum class ResultadoNomenclatura {
 	OK,
 	FORMULA_INVALIDA,        // no parseó como fórmula química
 	NO_ES_OXIDO,             // no tiene exactamente metal + oxígeno
 	NO_ES_PEROXIDO,          // no tiene exactamente metal + grupo peroxo (O en subíndice par)
+	NO_ES_ANHIDRIDO,         // no tiene exactamente no metal + oxígeno
 	ELEMENTO_DESCONOCIDO,    // el metal no está en la tabla de elementos
 	VALENCIA_NO_DETERMINADA, // el subíndice de O no corresponde a ninguna valencia conocida del metal
 };
@@ -25,6 +27,15 @@ ResultadoNomenclatura nomenclaturaStockOxido(const FormulaParseada &formula, cha
 // peroxo (O2)^2-, por lo que el subíndice de oxígeno en la fórmula debe ser
 // el doble del subíndice del metal (p.ej. Na2O2, H2O2, BaO2).
 ResultadoNomenclatura nomenclaturaStockPeroxido(const FormulaParseada &formula, char resultado[TAM_MAX]);
+
+// Calcula la nomenclatura tradicional de un anhídrido (óxido de no metal,
+// NoMetalxOy) a partir de su fórmula ya parseada, escribiendo el resultado
+// (p.ej. "anhidrido sulfurico") en `resultado`. Requiere que `formula` tenga
+// exactamente dos componentes: un no metal y oxígeno ("O"), en cualquier
+// orden. Usa sufijos -oso/-ico y, para no metales con 3 o 4 valencias
+// conocidas, también los prefijos hipo-/per- según la posición de la
+// valencia deducida dentro de la lista ordenada de valencias del no metal.
+ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &formula, char resultado[TAM_MAX]);
 
 // Devuelve un mensaje de error legible para un ResultadoNomenclatura distinto de OK.
 const char *mensajeError(ResultadoNomenclatura resultado);

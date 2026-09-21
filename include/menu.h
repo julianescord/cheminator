@@ -10,4 +10,7 @@ void oxido();
 // Pide una fórmula de peróxido y muestra su nomenclatura Stock.
 void peroxido();
 
+// Pide una fórmula de anhídrido y muestra su nomenclatura tradicional.
+void anhidrido();
+
 #endif // CHEMINATOR_MENU_H

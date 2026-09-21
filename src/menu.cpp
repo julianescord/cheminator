@@ -92,3 +92,10 @@ void peroxido()
 		"Introduzca la formula del peroxido del que desea conocer su nomenclatura stock (ej. Na2O2):",
 		nomenclaturaStockPeroxido);
 }
+
+void anhidrido()
+{
+	pedirFormulaYNombrar(
+		"Introduzca la formula del anhidrido del que desea conocer su nomenclatura tradicional (ej. SO3):",
+		nomenclaturaTradicionalAnhidrido);
+}

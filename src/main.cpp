@@ -23,6 +23,10 @@ int main()
 				peroxido();
 				break;
 
+			case 3: // Anhidridos
+				anhidrido();
+				break;
+
 			case 0: // Salir
 				repetir = false;
 				break;

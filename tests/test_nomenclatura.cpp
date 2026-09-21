@@ -27,6 +27,18 @@ static void verificarPeroxido(const char *formulaTexto, const char *esperado)
 	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
 }
 
+static void verificarAnhidrido(const char *formulaTexto, const char *esperado)
+{
+	FormulaParseada f;
+	ResultadoParseo rp = parsearFormula(formulaTexto, f);
+	ASSERT_TRUE(rp == ResultadoParseo::OK);
+
+	char resultado[TAM_MAX];
+	ResultadoNomenclatura rn = nomenclaturaTradicionalAnhidrido(f, resultado);
+	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
+	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
+}
+
 void test_nomenclatura()
 {
 	// Metales con una sola valencia: sin número romano.
@@ -81,4 +93,38 @@ void test_nomenclatura_peroxidos()
 
 	parsearFormula("XxO2", f); // elemento inexistente
 	ASSERT_TRUE(nomenclaturaStockPeroxido(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
+}
+
+void test_nomenclatura_anhidridos()
+{
+	// No metal con 2 valencias: -oso (menor) / -ico (mayor).
+	verificarAnhidrido("CO2", "anhidrido carbonico"); // C solo tiene valencia 4 en la tabla -> unica opcion es -ico
+	verificarAnhidrido("P2O3", "anhidrido fosforoso");
+	verificarAnhidrido("P2O5", "anhidrido fosforico");
+
+	// No metal con 3 valencias: hipo-...-oso / -oso / -ico.
+	verificarAnhidrido("N2O", "anhidrido hiponitroso");
+	verificarAnhidrido("N2O3", "anhidrido nitroso");
+	verificarAnhidrido("N2O5", "anhidrido nitrico");
+	verificarAnhidrido("SO2", "anhidrido sulfuroso");
+	verificarAnhidrido("SO3", "anhidrido sulfurico");
+
+	// No metal con 4 valencias: hipo-...-oso / -oso / -ico / per-...-ico.
+	verificarAnhidrido("Cl2O", "anhidrido hipocloroso");
+	verificarAnhidrido("Cl2O3", "anhidrido cloroso");
+	verificarAnhidrido("Cl2O5", "anhidrido clorico");
+	verificarAnhidrido("Cl2O7", "anhidrido perclorico");
+
+	// Casos de error.
+	FormulaParseada f;
+	char resultado[TAM_MAX];
+
+	parsearFormula("NaCl", f); // no tiene oxigeno
+	ASSERT_TRUE(nomenclaturaTradicionalAnhidrido(f, resultado) == ResultadoNomenclatura::NO_ES_ANHIDRIDO);
+
+	parsearFormula("FeO", f); // Fe es metal, no esta en la tabla de no metales
+	ASSERT_TRUE(nomenclaturaTradicionalAnhidrido(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
+
+	parsearFormula("NO", f); // N valencia 2 no esta en la tabla de valencias de anhidridos
+	ASSERT_TRUE(nomenclaturaTradicionalAnhidrido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
 }
