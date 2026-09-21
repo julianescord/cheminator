@@ -51,7 +51,11 @@ std::string_view mensajeError(ErrorFormula error) noexcept
 		case ErrorFormula::DEMASIADOS_COMPONENTES:
 			return "La formula tiene mas elementos distintos de los soportados.";
 		case ErrorFormula::GRUPO_MAL_FORMADO:
-			return "La formula tiene un grupo entre parentesis mal formado (sin cerrar, vacio o anidado).";
+			return "La formula tiene un grupo mal formado (sin cerrar, vacio o con los delimitadores cruzados).";
+		case ErrorFormula::DEMASIADO_ANIDADO:
+			return "La formula anida mas grupos de los que la libreria admite.";
+		case ErrorFormula::CARGA_MAL_FORMADA:
+			return "La carga al final de la formula no tiene la forma esperada (ej. \"3-\" o \"2+\").";
 	}
 	return "Error desconocido.";
 }
@@ -84,43 +88,83 @@ const ComponenteFormula *Formula::unicoDistintoDe(std::initializer_list<std::str
 	return encontrado;
 }
 
-Resultado<Formula, ErrorFormula> parsearFormula(std::string_view texto)
+const NodoFormula *Formula::esferaDeCoordinacion() const noexcept
 {
-	if (texto.empty())
+	for (const NodoFormula &nodo : raices_)
 	{
-		return ErrorFormula::VACIA;
+		if (nodo.delimitador == Delimitador::CORCHETE)
+		{
+			return &nodo;
+		}
+	}
+	return nullptr;
+}
+
+namespace {
+
+// Analiza una secuencia de nodos hasta agotar el texto o encontrar el cierre
+// que se espera. Se llama a si misma para el contenido de cada grupo, que es
+// lo que da el anidamiento: en "[Fe(CN)6]" el corchete se analiza con esta
+// misma funcion, y dentro encuentra el parentesis.
+//
+// `cierre` es el caracter que termina este nivel ('\0' en el nivel de arriba).
+struct ResultadoNivel {
+	std::vector<NodoFormula> nodos;
+	std::size_t siguiente = 0;
+	ErrorFormula error{};
+	bool ok = false;
+};
+
+ResultadoNivel analizarNivel(std::string_view texto, std::size_t desde, char cierre, int profundidad)
+{
+	ResultadoNivel salida;
+
+	if (profundidad > MAX_PROFUNDIDAD)
+	{
+		salida.error = ErrorFormula::DEMASIADO_ANIDADO;
+		return salida;
 	}
 
-	std::vector<ComponenteFormula> componentes;
-	std::size_t i = 0;
+	std::size_t i = desde;
 
-	while (i < texto.size())
+	while (i < texto.size() && texto[i] != cierre)
 	{
-		std::string simbolo;
+		NodoFormula nodo;
 
-		if (texto[i] == '(')
+		const char apertura = texto[i];
+		if (apertura == '(' || apertura == '[')
 		{
-			// Grupo entre parentesis ("(OH)", "(SO4)"): su contenido literal
-			// pasa a ser el simbolo de un unico componente, que es como la
-			// nomenclatura de bases y sales trata a un radical.
-			++i;
-			const std::size_t inicio = i;
-			while (i < texto.size() && texto[i] != ')')
+			const char esperado = (apertura == '(') ? ')' : ']';
+			const std::size_t inicio = i + 1;
+
+			// El contenido del grupo se analiza con esta misma funcion, un
+			// nivel mas abajo.
+			ResultadoNivel dentro = analizarNivel(texto, inicio, esperado, profundidad + 1);
+			if (!dentro.ok)
 			{
-				if (texto[i] == '(')
-				{
-					return ErrorFormula::GRUPO_MAL_FORMADO; // no se admite anidamiento
-				}
-				++i;
+				salida.error = dentro.error;
+				return salida;
 			}
-			if (i >= texto.size() || i == inicio)
+			if (dentro.siguiente >= texto.size() || texto[dentro.siguiente] != esperado)
 			{
-				return ErrorFormula::GRUPO_MAL_FORMADO; // sin cerrar, o vacio
+				salida.error = ErrorFormula::GRUPO_MAL_FORMADO; // sin cerrar, o cruzado
+				return salida;
 			}
-			simbolo.assign(texto.substr(inicio, i - inicio));
-			++i; // saltar ')'
+			if (dentro.nodos.empty())
+			{
+				salida.error = ErrorFormula::GRUPO_MAL_FORMADO; // grupo vacio
+				return salida;
+			}
+
+			// El simbolo del grupo es su contenido literal, que es lo que
+			// espera la nomenclatura de bases y sales ("OH", "SO4").
+			nodo.simbolo.assign(texto.substr(inicio, dentro.siguiente - inicio));
+			nodo.delimitador = (apertura == '(') ? Delimitador::PARENTESIS : Delimitador::CORCHETE;
+			nodo.hijos = std::move(dentro.nodos);
+
+			i = dentro.siguiente + 1; // saltar el cierre
 		}
-		else if (esMayuscula(texto[i]))
+		else if (esMayuscula(apertura))
 		{
 			// Un simbolo empieza en mayuscula y puede llevar una segunda
 			// letra minuscula ("Fe", "Na"), como en la notacion real.
@@ -130,28 +174,141 @@ Resultado<Formula, ErrorFormula> parsearFormula(std::string_view texto)
 			{
 				++i;
 			}
-			simbolo.assign(texto.substr(inicio, i - inicio));
+			nodo.simbolo.assign(texto.substr(inicio, i - inicio));
+		}
+		else if (apertura == ')' || apertura == ']')
+		{
+			// Un cierre que no es el que este nivel esperaba: o sobra, o los
+			// delimitadores estan cruzados ("Ca[OH)2"). Se distingue de un
+			// simbolo invalido porque el problema es el grupo, y decir
+			// "simbolo invalido" mandaria a buscar en el sitio equivocado.
+			salida.error = ErrorFormula::GRUPO_MAL_FORMADO;
+			return salida;
 		}
 		else
 		{
-			return ErrorFormula::SIMBOLO_INVALIDO;
+			salida.error = ErrorFormula::SIMBOLO_INVALIDO;
+			return salida;
 		}
 
 		const LecturaSubindice lectura = leerSubindice(texto, i);
 		if (!lectura.valido)
 		{
-			return ErrorFormula::SUBINDICE_INVALIDO;
+			salida.error = ErrorFormula::SUBINDICE_INVALIDO;
+			return salida;
 		}
 		i = lectura.siguiente;
+		nodo.subindice = lectura.subindice;
 
-		if (componentes.size() >= MAX_COMPONENTES)
-		{
-			return ErrorFormula::DEMASIADOS_COMPONENTES;
-		}
-		componentes.push_back(ComponenteFormula{std::move(simbolo), lectura.subindice});
+		salida.nodos.push_back(std::move(nodo));
 	}
 
-	return Formula{std::move(componentes)};
+	salida.siguiente = i;
+	salida.ok = true;
+	return salida;
+}
+
+// Separa el sufijo de carga del final ("3-", "2+", "-"). Devuelve el texto sin
+// el sufijo y la carga leida, con signo.
+struct TextoYCarga {
+	std::string_view texto;
+	Carga carga{0};
+	bool valido = true;
+};
+
+TextoYCarga separarCarga(std::string_view texto)
+{
+	if (texto.empty())
+	{
+		return TextoYCarga{texto, Carga{0}, true};
+	}
+
+	const char signo = texto.back();
+	if (signo != '+' && signo != '-')
+	{
+		return TextoYCarga{texto, Carga{0}, true};
+	}
+
+	std::string_view resto = texto.substr(0, texto.size() - 1);
+
+	// Los digitos que preceden al signo son la magnitud; sin ellos vale 1.
+	std::size_t fin = resto.size();
+	while (fin > 0 && esDigito(resto[fin - 1]))
+	{
+		--fin;
+	}
+
+	int magnitud = 1;
+	if (fin < resto.size())
+	{
+		magnitud = 0;
+		for (std::size_t k = fin; k < resto.size(); ++k)
+		{
+			magnitud = magnitud * 10 + (resto[k] - '0');
+		}
+		if (magnitud == 0)
+		{
+			return TextoYCarga{texto, Carga{0}, false};
+		}
+	}
+
+	resto = resto.substr(0, fin);
+	if (resto.empty())
+	{
+		return TextoYCarga{texto, Carga{0}, false}; // solo el signo, sin formula
+	}
+
+	return TextoYCarga{resto, Carga{signo == '-' ? -magnitud : magnitud}, true};
+}
+
+} // namespace
+
+Resultado<Formula, ErrorFormula> parsearFormula(std::string_view texto)
+{
+	if (texto.empty())
+	{
+		return ErrorFormula::VACIA;
+	}
+
+	const TextoYCarga conCarga = separarCarga(texto);
+	if (!conCarga.valido)
+	{
+		return ErrorFormula::CARGA_MAL_FORMADA;
+	}
+	if (conCarga.texto.empty())
+	{
+		return ErrorFormula::VACIA;
+	}
+
+	ResultadoNivel nivel = analizarNivel(conCarga.texto, 0, '\0', 1);
+	if (!nivel.ok)
+	{
+		return nivel.error;
+	}
+	// Si sobro texto es porque aparecio un cierre sin su apertura.
+	if (nivel.siguiente != conCarga.texto.size())
+	{
+		return ErrorFormula::GRUPO_MAL_FORMADO;
+	}
+	if (nivel.nodos.empty())
+	{
+		return ErrorFormula::VACIA;
+	}
+	if (nivel.nodos.size() > MAX_COMPONENTES)
+	{
+		return ErrorFormula::DEMASIADOS_COMPONENTES;
+	}
+
+	// La vista plana es la primera capa del arbol, que es exactamente lo que
+	// devolvia el parser anterior.
+	std::vector<ComponenteFormula> componentes;
+	componentes.reserve(nivel.nodos.size());
+	for (const NodoFormula &nodo : nivel.nodos)
+	{
+		componentes.push_back(ComponenteFormula{nodo.simbolo, nodo.subindice});
+	}
+
+	return Formula{std::move(componentes), std::move(nivel.nodos), conCarga.carga};
 }
 
 } // namespace cheminator

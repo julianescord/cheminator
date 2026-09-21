@@ -2,6 +2,8 @@
 
 #include "afijos.hpp"
 
+#include "cheminator/coordinacion.hpp"
+
 #include <array>
 #include <format>
 #include <optional>
@@ -217,6 +219,7 @@ std::string_view nombreCategoria(CategoriaCompuesto categoria) noexcept
 		case CategoriaCompuesto::ACIDO_OXACIDO: return "acido oxacido";
 		case CategoriaCompuesto::BASE: return "base";
 		case CategoriaCompuesto::SAL_OXISAL: return "sal oxisal";
+		case CategoriaCompuesto::COMPLEJO: return "compuesto de coordinacion";
 	}
 	return "desconocido";
 }
@@ -568,6 +571,22 @@ ResultadoNomenclatura nombrarSal(const Formula &formula)
 
 ResultadoNomenclatura nombrar(const Formula &formula)
 {
+	// Un compuesto de coordinacion se reconoce por los corchetes, sin
+	// ambiguedad posible con las demas categorias, asi que se resuelve aparte
+	// y antes que ellas.
+	if (formula.esferaDeCoordinacion() != nullptr)
+	{
+		const auto complejo = nombrarComplejo(formula);
+		if (complejo)
+		{
+			return Nomenclatura{complejo.valor().nombre, CategoriaCompuesto::COMPLEJO,
+			                    complejo.valor().pasos};
+		}
+		// Si tiene corchetes pero no se pudo nombrar, el problema es del
+		// complejo: probar las otras categorias solo daria un error peor.
+		return ErrorNomenclatura::NINGUNA_CATEGORIA;
+	}
+
 	// El orden no es arbitrario. Oxido va antes que peroxido porque una misma
 	// formula puede encajar en ambos: CuO es "oxido de cobre (II)" y tambien,
 	// formalmente, un peroxido de cobre con valencia 1. En ausencia de mas

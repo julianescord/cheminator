@@ -24,6 +24,7 @@ enum class CategoriaCompuesto {
 	ACIDO_OXACIDO,
 	BASE,
 	SAL_OXISAL,
+	COMPLEJO,
 };
 
 std::string_view nombreCategoria(CategoriaCompuesto categoria) noexcept;

@@ -144,7 +144,7 @@ void salOxisal()
 
 void detectarAutomaticamente()
 {
-	std::cout << "\nIntroduzca la formula del compuesto, sin indicar el tipo (ej. Fe2O3, HCl, Al2(SO4)3): ";
+	std::cout << "\nIntroduzca la formula del compuesto, sin indicar el tipo (ej. Fe2O3, Al2(SO4)3, K3[Fe(CN)6]): ";
 	const std::string texto = leerFormula();
 
 	if (texto.empty())

@@ -68,6 +68,15 @@ jobs:
               printf("%s -> %s\n", chem_resultado_categoria(i), chem_resultado_formula(i));
               ok = chem_resultado_ok(i) && strcmp(chem_resultado_formula(i), "Fe2O3") == 0;
               chem_resultado_liberar(i);
+              if (!ok) return 1;
+
+              /* Un compuesto de coordinacion, que ejercita el parser en arbol. */
+              chem_resultado *c = chem_nombrar("K3[Fe(CN)6]");
+              if (c == NULL) return 1;
+              printf("%s -> %s\n", chem_resultado_categoria(c), chem_resultado_nombre(c));
+              ok = chem_resultado_ok(c) &&
+                   strcmp(chem_resultado_nombre(c), "hexacianoferrato (III) de potasio") == 0;
+              chem_resultado_liberar(c);
               return ok ? 0 : 1;
           }
           FIN

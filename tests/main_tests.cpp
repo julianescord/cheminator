@@ -13,6 +13,10 @@ void test_nomenclatura_oxacidos();
 void test_nomenclatura_bases();
 void test_nomenclatura_sales();
 void test_deteccion();
+void test_formula_arbol();
+void test_coordinacion_analisis();
+void test_coordinacion_nombres();
+void test_coordinacion_deteccion();
 void test_formulacion();
 void test_ida_y_vuelta();
 
@@ -29,6 +33,10 @@ int main()
 	test_nomenclatura_bases();
 	test_nomenclatura_sales();
 	test_deteccion();
+	test_formula_arbol();
+	test_coordinacion_analisis();
+	test_coordinacion_nombres();
+	test_coordinacion_deteccion();
 	test_formulacion();
 	test_ida_y_vuelta();
 

@@ -25,9 +25,11 @@ add_library(cheminator
 	src/hidracidos.cpp
 	src/oxacidos.cpp
 	src/radicales.cpp
+	src/ligandos.cpp
 	src/formula.cpp
 	src/nomenclatura.cpp
 	src/formulacion.cpp
+	src/coordinacion.cpp
 	src/c_api.cpp)
 
 add_library(cheminator::cheminator ALIAS cheminator)
@@ -120,7 +122,8 @@ if(CHEMINATOR_BUILD_TESTS)
 		tests/test_elementos.cpp
 		tests/test_nomenclatura.cpp
 		tests/test_deteccion.cpp
-		tests/test_formulacion.cpp)
+		tests/test_formulacion.cpp
+		tests/test_coordinacion.cpp)
 
 	target_link_libraries(run_tests PRIVATE cheminator)
 	target_include_directories(run_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)

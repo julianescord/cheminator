@@ -43,8 +43,9 @@ jobs:
           import crearCheminator from './cheminator.js';
           const Modulo = await crearCheminator();
           const casos = [
-            ['Fe2O3',      'oxido de Hierro (III)'],
-            ['Al2(SO4)3',  'sulfato de Aluminio'],
+            ['Fe2O3',       'oxido de Hierro (III)'],
+            ['Al2(SO4)3',   'sulfato de Aluminio'],
+            ['K3[Fe(CN)6]', 'hexacianoferrato (III) de potasio'],
           ];
           for (const [formula, esperado] of casos) {
               const r = Modulo.nombrar(formula);

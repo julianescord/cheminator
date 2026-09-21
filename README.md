@@ -2,7 +2,7 @@
 
 **[▶ Probar la demo en el navegador](https://julianescord.github.io/cheminator/)** — sin instalar nada.
 
-Librería C++ y programa de consola para la nomenclatura de compuestos químicos inorgánicos en español (óxidos, peróxidos, anhídridos, ácidos hidrácidos y oxácidos, bases y sales oxisal), en los sistemas Stock y tradicional.
+Librería C++ y programa de consola para la nomenclatura de compuestos químicos inorgánicos en español (óxidos, peróxidos, anhídridos, ácidos hidrácidos y oxácidos, bases, sales oxisal y compuestos de coordinación), en los sistemas Stock y tradicional.
 
 Funciona en **las dos direcciones**: de la fórmula al nombre y del nombre a la fórmula. Además **detecta automáticamente** a qué categoría pertenece un compuesto y **explica su razonamiento paso a paso**, en vez de limitarse a devolver una respuesta.
 
@@ -20,9 +20,11 @@ cheminator/
 │   ├── hidracidos.hpp    # No metales formadores de acidos hidracidos
 │   ├── oxacidos.hpp      # Formulas y nombres de acidos oxacidos conocidos
 │   ├── radicales.hpp     # Radicales (aniones poliatomicos) para sales
-│   ├── formula.hpp       # Parseo de formulas (incluye grupos entre parentesis)
+│   ├── formula.hpp       # Parseo de formulas (arbol, grupos anidados y carga)
+│   ├── ligandos.hpp      # Ligandos para compuestos de coordinacion
 │   ├── nomenclatura.hpp  # Reglas de nomenclatura, deteccion y explicacion
-│   └── formulacion.hpp   # El camino inverso: del nombre a la formula
+│   ├── formulacion.hpp   # El camino inverso: del nombre a la formula
+│   └── coordinacion.hpp  # Complejos: esfera, ligandos y estado de oxidacion
 ├── src/                  # Implementacion de la libreria (sin entrada/salida)
 ├── apps/cli/             # Programa de consola: un cliente de la libreria
 │   ├── main.cpp
@@ -181,6 +183,32 @@ Cuando un metal admite varias valencias hay que indicarla con número romano:
 `"oxido de Hierro"` devuelve `FALTA_VALENCIA` en vez de adivinar entre `FeO` y
 `Fe2O3`.
 
+### Compuestos de coordinación
+
+Es la categoría que justifica que el parser construya un árbol en vez de una
+lista: para deducir el estado de oxidación del átomo central hay que saber
+**qué está dentro de la esfera** y qué fuera, algo que una lista plana de
+`{símbolo, subíndice}` no puede representar.
+
+```cpp
+#include <cheminator/coordinacion.hpp>
+
+if (const auto f = parsearFormula("K3[Fe(CN)6]"))
+{
+    const auto complejo = analizarComplejo(f.valor());
+    complejo.valor().simboloCentral;      // "Fe"
+    complejo.valor().estadoOxidacion;     // Valencia{3}, deducido del balance
+    complejo.valor().indiceCoordinacion;  // 6
+    complejo.valor().cargaEsfera;         // Carga{-3}
+
+    nombrarComplejo(f.valor()).valor().nombre;
+    // "hexacianoferrato (III) de potasio"
+}
+```
+
+`K3[Fe(CN)6]` y `K4[Fe(CN)6]` tienen los mismos elementos y solo se distinguen
+por el balance de cargas: el primero es hierro (III) y el segundo hierro (II).
+
 ## Ejemplo de uso
 
 ```
@@ -215,6 +243,26 @@ Razonamiento:
 Formula del compuesto: Al2(SO4)3
 ```
 
+Y con un compuesto de coordinación:
+
+```
+=> 8
+Introduzca la formula del compuesto, sin indicar el tipo (ej. Fe2O3, Al2(SO4)3, K3[Fe(CN)6]): K3[Fe(CN)6]
+La formula es: K3[Fe(CN)6]
+Tipo de compuesto detectado: compuesto de coordinacion
+
+Razonamiento:
+  1. El atomo central es Hierro (Fe), dentro de los corchetes.
+  2. Ligandos en orden alfabetico: ciano x6.
+  3. Indice de coordinacion: 6.
+  4. La esfera tiene carga -3, y los ligandos suman -6.
+  5. Por diferencia, Hierro actua con estado de oxidacion 3.
+  6. La esfera es un anion, asi que el metal toma el sufijo -ato: "ferrato".
+  7. Fuera de la esfera esta potasio, que completa el nombre.
+
+Nomenclatura del compuesto: hexacianoferrato (III) de potasio
+```
+
 ## Alcance actual
 
 **Metales (29)** — H, Li, Na, K, Rb, Cs, Be, Mg, Ca, Sr, Ba, Ra, Al, Zn, Cd, Ag, O, Cu, Hg, Fe, Co, Ni, Cr, Mn, Au, Pb, Sn, Pt, Ti (ver [`src/elementos.cpp`](src/elementos.cpp)).
@@ -224,6 +272,8 @@ Formula del compuesto: Al2(SO4)3
 **No metales para ácidos hidrácidos (7)** — F, Cl, Br, I, S, Se, Te (ver [`src/hidracidos.cpp`](src/hidracidos.cpp)).
 
 **Radicales para sales oxisal (30)** — borato, carbonato, silicato, nitrito/nitrato, fosfito/fosfato, arsenito/arseniato, antimonito/antimoniato, (hipo)sulfito/sulfato, selenito/selenato, telurito/telurato, y los 4 oxianiones de Cl/Br/I (ver [`src/radicales.cpp`](src/radicales.cpp)).
+
+**Ligandos para compuestos de coordinación (18)** — aniónicos (ciano, hidroxo, cloro, bromo, iodo, fluoro, nitro, tiociano, oxo, tio, oxalato, sulfato, tiosulfato) y neutros (acua, amin, carbonilo, nitrosilo, etilendiamino), ver [`src/ligandos.cpp`](src/ligandos.cpp).
 
 Cada fila de cada tabla está verificada en las dos direcciones: se genera el
 compuesto, se nombra y se vuelve a formular, comprobando que sale la fórmula
@@ -242,7 +292,7 @@ original.
 - [x] Pruebas automatizadas y CI (nativo, solo-librería, consumidor en C y WebAssembly)
 - [x] Formulación inversa: escribir el nombre en español y obtener la fórmula
 - [x] Ampliar tablas de metales, no metales y radicales
-- [ ] Compuestos de coordinación (`[Fe(CN)6]³⁻`), donde un modelo de grafo sí se justifica
+- [x] Compuestos de coordinación (`[Fe(CN)6]³⁻`), con esfera de coordinación y estado de oxidación deducido
 
 ## Licencia
 

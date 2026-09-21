@@ -128,6 +128,7 @@
   <p class="subtitulo">
     Nomenclatura química inorgánica en español, en las dos direcciones: de la
     fórmula al nombre y del nombre a la fórmula, explicando el porqué.
+    Incluye compuestos de coordinación.
   </p>
 
   <div class="modos" role="tablist" aria-label="Dirección">
@@ -180,7 +181,8 @@ const $modoFormular = document.getElementById('modo-formular');
 // funcion del modulo que le corresponde.
 const MODOS = {
   nombrar: {
-    ejemplos: ['Fe2O3', 'Na2O2', 'SO3', 'HCl', 'H2SO4', 'Ca(OH)2', 'Al2(SO4)3'],
+    ejemplos: ['Fe2O3', 'Na2O2', 'SO3', 'HCl', 'H2SO4', 'Ca(OH)2', 'Al2(SO4)3',
+               'K3[Fe(CN)6]', '[Cu(NH3)4]2+'],
     marcador: 'Fe2O3',
     rotulo: 'Nombre',
     llamar: (entrada) => Modulo.nombrar(entrada),
