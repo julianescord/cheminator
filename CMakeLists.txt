@@ -26,13 +26,18 @@ add_library(cheminator
 	src/oxacidos.cpp
 	src/radicales.cpp
 	src/formula.cpp
-	src/nomenclatura.cpp)
+	src/nomenclatura.cpp
+	src/c_api.cpp)
 
 add_library(cheminator::cheminator ALIAS cheminator)
 
 target_include_directories(cheminator PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>)
+
+# La version vive en un solo lugar (el project() de arriba) y llega al codigo
+# desde aqui, en vez de repetirse escrita a mano en algun archivo fuente.
+target_compile_definitions(cheminator PRIVATE CHEMINATOR_VERSION="${PROJECT_VERSION}")
 
 if(MSVC)
 	target_compile_options(cheminator PRIVATE /W4)
@@ -60,6 +65,32 @@ if(CHEMINATOR_BUILD_CLI AND NOT EMSCRIPTEN)
 	else()
 		target_compile_options(cheminator_cli PRIVATE -Wall -Wextra)
 	endif()
+endif()
+
+# ---------------------------------------------------------------------------
+# WebAssembly: el mismo núcleo, compilado para el navegador. Este bloque solo
+# aplica al configurar con `emcmake cmake`; en un build nativo no existe.
+# ---------------------------------------------------------------------------
+if(EMSCRIPTEN)
+	add_executable(cheminator_wasm wasm/bindings.cpp)
+
+	target_link_libraries(cheminator_wasm PRIVATE cheminator)
+	target_compile_definitions(cheminator_wasm PRIVATE CHEMINATOR_VERSION="${PROJECT_VERSION}")
+	target_compile_options(cheminator_wasm PRIVATE -Wall -Wextra)
+
+	set_target_properties(cheminator_wasm PROPERTIES
+		OUTPUT_NAME cheminator
+		# MODULARIZE entrega una fabrica en vez de contaminar el ambito
+		# global, para poder incrustar el modulo en una pagina que ya tenga
+		# su propio codigo.
+		LINK_FLAGS "--bind -sMODULARIZE=1 -sEXPORT_NAME=crearCheminator -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1")
+
+	# La pagina de ejemplo se copia junto a los artefactos para poder servir
+	# el directorio de build tal cual.
+	add_custom_command(TARGET cheminator_wasm POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"${CMAKE_CURRENT_SOURCE_DIR}/wasm/demo.html"
+			"$<TARGET_FILE_DIR:cheminator_wasm>/index.html")
 endif()
 
 # ---------------------------------------------------------------------------

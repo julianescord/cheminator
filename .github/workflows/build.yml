@@ -42,3 +42,52 @@ jobs:
 
       - name: Verificar instalacion
         run: cmake --install build-lib --prefix ./instalada && ls -R ./instalada
+
+      # La frontera en C es lo que permite embeber la libreria desde otros
+      # lenguajes, asi que se compila con un compilador de C de verdad para
+      # comprobar que el header es valido como C y no solo como C++.
+      - name: Compilar un consumidor en C
+        run: |
+          cat > consumidor.c <<'FIN'
+          #include <cheminator/cheminator.h>
+          #include <stdio.h>
+          int main(void) {
+              chem_resultado *r = chem_nombrar("Fe2O3");
+              if (r == NULL) return 1;
+              printf("%s -> %s\n", chem_resultado_categoria(r), chem_resultado_nombre(r));
+              int ok = chem_resultado_ok(r);
+              chem_resultado_liberar(r);
+              return ok ? 0 : 1;
+          }
+          FIN
+          gcc -std=c11 -Wall -Wextra -I./instalada/include -c consumidor.c -o consumidor.o
+          g++ -o consumidor consumidor.o ./instalada/lib/libcheminator.a
+          ./consumidor
+
+  webassembly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Compilar a WebAssembly
+        run: |
+          emcmake cmake -S . -B build-wasm -DCMAKE_BUILD_TYPE=Release -DCHEMINATOR_BUILD_TESTS=OFF
+          cmake --build build-wasm
+
+      - name: Ejecutar el modulo con Node
+        run: |
+          cat > build-wasm/prueba.mjs <<'FIN'
+          import crearCheminator from './cheminator.js';
+          const Modulo = await crearCheminator();
+          const resultado = Modulo.nombrar('Al2(SO4)3');
+          if (!resultado.ok || resultado.nombre !== 'sulfato de Aluminio') {
+              console.error('Resultado inesperado:', resultado.nombre, resultado.error);
+              process.exit(1);
+          }
+          console.log(`v${Modulo.version()} ${resultado.categoria}: ${resultado.nombre}`);
+          FIN
+          node build-wasm/prueba.mjs

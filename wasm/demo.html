@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cheminator</title>
+<style>
+  :root {
+    --fondo: #fbfbfd;
+    --superficie: #ffffff;
+    --borde: #d8dbe2;
+    --texto: #1c1f26;
+    --tenue: #5d646f;
+    --acento: #2f6f4f;
+    --error: #9a2f2f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --fondo: #16181d;
+      --superficie: #1e2128;
+      --borde: #333842;
+      --texto: #e8eaee;
+      --tenue: #9aa2ae;
+      --acento: #7fc4a0;
+      --error: #e08585;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 48px 16px;
+    background: var(--fondo);
+    color: var(--texto);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .subtitulo { color: var(--tenue); margin: 0 0 28px; font-size: 0.95rem; }
+  .entrada { display: flex; gap: 8px; margin-bottom: 12px; }
+  input {
+    flex: 1; min-width: 0;
+    padding: 11px 14px;
+    font: inherit;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--texto);
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+  }
+  input:focus { outline: 2px solid var(--acento); outline-offset: -1px; }
+  button {
+    padding: 11px 20px;
+    font: inherit; font-weight: 600;
+    color: var(--fondo); background: var(--acento);
+    border: 0; border-radius: 8px; cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .ejemplos { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 26px; }
+  .ejemplos button {
+    padding: 5px 11px; font-size: 0.85rem; font-weight: 500;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    color: var(--tenue); background: transparent;
+    border: 1px solid var(--borde);
+  }
+  .tarjeta {
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    padding: 22px;
+  }
+  .categoria {
+    display: inline-block;
+    font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--acento);
+    margin-bottom: 8px;
+  }
+  .nombre { font-size: 1.45rem; font-weight: 600; margin-bottom: 20px; }
+  .rotulo {
+    font-size: 0.72rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--tenue);
+    margin-bottom: 10px;
+  }
+  ol { margin: 0; padding-left: 20px; color: var(--tenue); font-size: 0.93rem; }
+  ol li { margin-bottom: 7px; }
+  ol li:last-child { margin-bottom: 0; }
+  .error { color: var(--error); }
+  .pie {
+    margin-top: 28px; padding-top: 16px;
+    border-top: 1px solid var(--borde);
+    color: var(--tenue); font-size: 0.82rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cheminator</h1>
+  <p class="subtitulo">
+    Nomenclatura química inorgánica en español. Escriba una fórmula y el
+    programa deduce de qué tipo de compuesto se trata, cómo se llama y por qué.
+  </p>
+
+  <form class="entrada" id="formulario">
+    <input id="formula" placeholder="Fe2O3" autocomplete="off" spellcheck="false" autofocus>
+    <button type="submit" id="enviar" disabled>Analizar</button>
+  </form>
+
+  <div class="ejemplos" id="ejemplos"></div>
+
+  <div class="tarjeta" id="salida">
+    <p class="subtitulo" style="margin:0">Cargando el módulo…</p>
+  </div>
+
+  <p class="pie" id="pie"></p>
+</main>
+
+<script type="module">
+import crearCheminator from './cheminator.js';
+
+const $formulario = document.getElementById('formulario');
+const $formula = document.getElementById('formula');
+const $enviar = document.getElementById('enviar');
+const $salida = document.getElementById('salida');
+const $pie = document.getElementById('pie');
+const $ejemplos = document.getElementById('ejemplos');
+
+const EJEMPLOS = ['Fe2O3', 'Na2O2', 'SO3', 'HCl', 'H2SO4', 'Ca(OH)2', 'Al2(SO4)3'];
+
+// `pasos` llega como el vector de C++ enlazado por embind, no como un array
+// de JavaScript: se recorre con size()/get().
+const aArray = (v) => {
+  if (Array.isArray(v)) return v;
+  const salida = [];
+  for (let i = 0; i < v.size(); i++) salida.push(v.get(i));
+  return salida;
+};
+
+const texto = (etiqueta, contenido, clase = '') => {
+  const nodo = document.createElement(etiqueta);
+  nodo.textContent = contenido;
+  if (clase) nodo.className = clase;
+  return nodo;
+};
+
+const Modulo = await crearCheminator();
+
+$enviar.disabled = false;
+$pie.textContent = `Núcleo C++ v${Modulo.version()} compilado a WebAssembly. ` +
+                   `Todo el análisis ocurre en este navegador: no se envía nada a ningún servidor.`;
+$salida.replaceChildren(texto('p', 'Escriba una fórmula para empezar.', 'subtitulo'));
+
+for (const ejemplo of EJEMPLOS) {
+  const boton = texto('button', ejemplo);
+  boton.type = 'button';
+  boton.addEventListener('click', () => { $formula.value = ejemplo; analizar(); });
+  $ejemplos.append(boton);
+}
+
+function analizar() {
+  const entrada = $formula.value.trim();
+  if (!entrada) return;
+
+  const resultado = Modulo.nombrar(entrada);
+
+  if (!resultado.ok) {
+    $salida.replaceChildren(texto('p', resultado.error, 'error'));
+    return;
+  }
+
+  const lista = document.createElement('ol');
+  for (const paso of aArray(resultado.pasos)) lista.append(texto('li', paso));
+
+  $salida.replaceChildren(
+    texto('div', resultado.categoria, 'categoria'),
+    texto('div', resultado.nombre, 'nombre'),
+    texto('div', 'Razonamiento', 'rotulo'),
+    lista,
+  );
+}
+
+$formulario.addEventListener('submit', (evento) => { evento.preventDefault(); analizar(); });
+</script>
+</body>
+</html>

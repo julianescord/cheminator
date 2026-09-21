@@ -11,6 +11,8 @@ Además de dar el nombre a partir de la fórmula, Cheminator puede **detectar au
 ```
 cheminator/
 ├── include/cheminator/   # API publica de la libreria
+│   ├── cheminator.h      # Frontera en C, para embeber desde otros lenguajes
+│   ├── tipos.hpp         # Valencia, Subindice, Carga y la regla de intercambio
 │   ├── elementos.hpp     # Tabla de metales: simbolo, nombre, valencias
 │   ├── no_metales.hpp    # Tabla de no metales (para anhidridos)
 │   ├── hidracidos.hpp    # No metales formadores de acidos hidracidos
@@ -23,8 +25,11 @@ cheminator/
 │   ├── main.cpp
 │   ├── menu.hpp
 │   └── menu.cpp
+├── wasm/                 # Enlace con JavaScript y pagina de ejemplo
+│   ├── bindings.cpp
+│   └── demo.html
 ├── tests/                # Pruebas automatizadas (framework propio, sin dependencias)
-├── .github/workflows/    # CI: compila, prueba y verifica el build de solo-libreria
+├── .github/workflows/    # CI: nativo, solo-libreria, consumidor en C y WebAssembly
 ├── CMakeLists.txt
 ├── Makefile              # Envoltorio fino sobre CMake
 └── README.md
@@ -59,6 +64,30 @@ cmake --build build
 cmake --install build --prefix /donde/instalar
 ```
 
+## WebAssembly
+
+El mismo núcleo se compila para el navegador con Emscripten, sin servidor ni
+instalación: todo el análisis ocurre en la máquina de quien lo usa.
+
+```bash
+source /ruta/a/emsdk/emsdk_env.sh
+make wasm          # genera build-wasm/cheminator.js + .wasm + index.html
+make servir-wasm   # y lo sirve en http://localhost:8000
+```
+
+Desde JavaScript:
+
+```js
+import crearCheminator from './cheminator.js';
+
+const Cheminator = await crearCheminator();
+const resultado = Cheminator.nombrar('Al2(SO4)3');
+// { ok: true, nombre: "sulfato de Aluminio", categoria: "sal oxisal", pasos: [...] }
+```
+
+`pasos` llega como el vector de C++ enlazado por embind: se recorre con
+`size()` y `get(i)`, no como un array de JavaScript.
+
 ## Usar como librería
 
 Una vez instalada, otro proyecto CMake la consume así:
@@ -67,6 +96,28 @@ Una vez instalada, otro proyecto CMake la consume así:
 find_package(cheminator REQUIRED)
 target_link_libraries(mi_programa PRIVATE cheminator::cheminator)
 ```
+
+### Desde otros lenguajes
+
+Además del API en C++, la librería expone una frontera en C
+([`include/cheminator/cheminator.h`](include/cheminator/cheminator.h)) con tipos
+opacos, que es lo que pueden consumir Python (ctypes/cffi), C#, Java, Rust, Go
+y cualquier otro lenguaje con FFI:
+
+```c
+#include <cheminator/cheminator.h>
+
+chem_resultado *r = chem_nombrar("Fe2O3");
+if (chem_resultado_ok(r)) {
+    chem_resultado_nombre(r);            /* "oxido de Hierro (III)" */
+    chem_resultado_categoria(r);         /* "oxido"                 */
+    chem_resultado_cantidad_pasos(r);    /* 4                       */
+    chem_resultado_paso(r, 0);           /* primer paso del razonamiento */
+}
+chem_resultado_liberar(r);
+```
+
+### Desde C++
 
 ```cpp
 #include <cheminator/formula.hpp>
@@ -121,12 +172,13 @@ Radicales para sales oxisal: carbonato, nitrito/nitrato, fosfito/fosfato, (hipo)
 - [x] Detección automática de la categoría a partir de la fórmula
 - [x] Explicación del razonamiento paso a paso
 - [x] Núcleo separado como librería reutilizable, instalable vía CMake
-- [x] Pruebas automatizadas y CI
-- [ ] Frontera `extern "C"` para embeber desde otros lenguajes
-- [ ] Compilación a WebAssembly (Emscripten) para uso en navegador
-- [ ] Modernización: tipos fuertes para valencia/subíndice/carga, `std::string_view`, tablas `constexpr` verificadas en compilación
+- [x] Tipos fuertes para valencia/subíndice/carga, tablas `constexpr` verificadas en compilación, `std::string_view`
+- [x] Frontera `extern "C"` para embeber desde otros lenguajes
+- [x] Compilación a WebAssembly con página de ejemplo
+- [x] Pruebas automatizadas y CI (nativo, solo-librería, consumidor en C y WebAssembly)
 - [ ] Formulación inversa: escribir el nombre en español y obtener la fórmula
 - [ ] Ampliar tablas de metales, no metales y radicales
+- [ ] Compuestos de coordinación (`[Fe(CN)6]³⁻`), donde un modelo de grafo sí se justifica
 
 ## Licencia
 
