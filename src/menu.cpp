@@ -113,3 +113,10 @@ void acidoOxacido()
 		"Introduzca la formula del acido oxacido del que desea conocer su nomenclatura (ej. H2SO4):",
 		nomenclaturaTradicionalOxacido);
 }
+
+void base()
+{
+	pedirFormulaYNombrar(
+		"Introduzca la formula de la base del que desea conocer su nomenclatura stock (ej. Ca(OH)2 o NaOH):",
+		nomenclaturaStockBase);
+}

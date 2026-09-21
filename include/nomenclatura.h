@@ -15,6 +15,7 @@ enum class ResultadoNomenclatura {
 	NO_ES_ANHIDRIDO,         // no tiene exactamente no metal + oxígeno
 	NO_ES_HIDRACIDO,         // no tiene exactamente H + no metal formador de hidrácido, en la proporción esperada
 	NO_ES_OXACIDO,           // no tiene exactamente H + no metal + oxígeno
+	NO_ES_BASE,              // no tiene exactamente metal + grupo hidroxilo (OH), en la proporción esperada
 	ELEMENTO_DESCONOCIDO,    // el metal no está en la tabla de elementos
 	VALENCIA_NO_DETERMINADA, // el subíndice de O no corresponde a ninguna valencia conocida del metal
 };
@@ -58,6 +59,15 @@ ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &fo
 // (ver la nota en oxacidos.h sobre por qué esa derivación no siempre es
 // correcta).
 ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &formula, char resultado[TAM_MAX]);
+
+// Calcula la nomenclatura Stock de una base/hidróxido (Metal(OH)n) a partir
+// de su fórmula ya parseada, escribiendo el resultado (p.ej. "hidroxido de
+// hierro (III)") en `resultado`. Acepta tanto la forma con paréntesis
+// (p.ej. "Ca(OH)2", que el parser entrega como componentes {"Ca",1} y
+// {"OH",2}) como la forma sin paréntesis para un solo grupo hidroxilo
+// (p.ej. "NaOH", que el parser entrega como {"Na",1},{"O",1},{"H",1}): esta
+// función normaliza ambos patrones antes de deducir la valencia del metal.
+ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char resultado[TAM_MAX]);
 
 // Devuelve un mensaje de error legible para un ResultadoNomenclatura distinto de OK.
 const char *mensajeError(ResultadoNomenclatura resultado);

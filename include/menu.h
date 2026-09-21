@@ -19,4 +19,7 @@ void acidoHidracido();
 // Pide una fórmula de ácido oxácido y muestra su nomenclatura tradicional.
 void acidoOxacido();
 
+// Pide una fórmula de base (hidróxido) y muestra su nomenclatura Stock.
+void base();
+
 #endif // CHEMINATOR_MENU_H

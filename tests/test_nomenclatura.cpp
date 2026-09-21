@@ -63,6 +63,18 @@ static void verificarOxacido(const char *formulaTexto, const char *esperado)
 	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
 }
 
+static void verificarBase(const char *formulaTexto, const char *esperado)
+{
+	FormulaParseada f;
+	ResultadoParseo rp = parsearFormula(formulaTexto, f);
+	ASSERT_TRUE(rp == ResultadoParseo::OK);
+
+	char resultado[TAM_MAX];
+	ResultadoNomenclatura rn = nomenclaturaStockBase(f, resultado);
+	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
+	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
+}
+
 void test_nomenclatura()
 {
 	// Metales con una sola valencia: sin número romano.
@@ -213,4 +225,36 @@ void test_nomenclatura_oxacidos()
 
 	parsearFormula("H4SO4", f); // proporcion que no corresponde a ningun oxacido tabulado de S
 	ASSERT_TRUE(nomenclaturaTradicionalOxacido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+}
+
+void test_nomenclatura_bases()
+{
+	// Forma con parentesis (2 componentes tras el parseo).
+	verificarBase("Ca(OH)2", "hidroxido de Calcio");
+	verificarBase("Al(OH)3", "hidroxido de Aluminio");
+	verificarBase("Fe(OH)2", "hidroxido de Hierro (II)");
+	verificarBase("Fe(OH)3", "hidroxido de Hierro (III)");
+	verificarBase("Cu(OH)2", "hidroxido de Cobre (II)");
+
+	// Forma sin parentesis para un solo grupo OH (3 componentes tras el
+	// parseo: metal + O + H con el mismo subindice), que debe normalizarse
+	// igual que la forma con parentesis.
+	verificarBase("NaOH", "hidroxido de Sodio");
+	verificarBase("KOH", "hidroxido de Potasio");
+
+	// Casos de error.
+	FormulaParseada f;
+	char resultado[TAM_MAX];
+
+	parsearFormula("NaCl", f); // no tiene grupo OH
+	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::NO_ES_BASE);
+
+	parsearFormula("Na(OH)2", f); // Na solo tiene valencia 1, no puede llevar 2 OH
+	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+
+	parsearFormula("Fe(OH)5", f); // Fe no tiene valencia 5
+	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
+
+	parsearFormula("XxOH", f); // elemento inexistente, forma con parentesis implicita
+	ASSERT_TRUE(nomenclaturaStockBase(f, resultado) == ResultadoNomenclatura::ELEMENTO_DESCONOCIDO);
 }

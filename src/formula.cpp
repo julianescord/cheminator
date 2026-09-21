@@ -16,9 +16,50 @@ ResultadoParseo parsearFormula(const char formula[], FormulaParseada &resultado)
 
 	while (i < longitud)
 	{
-		// Un símbolo válido empieza en mayúscula y puede tener una segunda
-		// letra minúscula (p.ej. "Fe", "Na"), como en la notación química real.
-		if (!std::isupper(static_cast<unsigned char>(formula[i])))
+		char simbolo[TAM_MAX];
+
+		if (formula[i] == '(')
+		{
+			// Grupo entre paréntesis (p.ej. "(OH)", "(SO4)"): se copia su
+			// contenido literal como si fuera un único símbolo, para que la
+			// nomenclatura de bases/sales lo reconozca como un radical.
+			i++; // saltar '('
+			int j = 0;
+			bool huboContenido = false;
+
+			while (i < longitud && formula[i] != ')')
+			{
+				if (formula[i] == '(' || j >= TAM_MAX - 1)
+				{
+					// No se soportan paréntesis anidados ni contenido excesivo.
+					return ResultadoParseo::GRUPO_MAL_FORMADO;
+				}
+				simbolo[j++] = formula[i++];
+				huboContenido = true;
+			}
+
+			if (i >= longitud || formula[i] != ')' || !huboContenido)
+			{
+				// Se llegó al final sin encontrar ')', o el grupo estaba vacío "()".
+				return ResultadoParseo::GRUPO_MAL_FORMADO;
+			}
+			i++; // saltar ')'
+			simbolo[j] = '\0';
+		}
+		else if (std::isupper(static_cast<unsigned char>(formula[i])))
+		{
+			// Un símbolo válido empieza en mayúscula y puede tener una segunda
+			// letra minúscula (p.ej. "Fe", "Na"), como en la notación química real.
+			int j = 0;
+			simbolo[j++] = formula[i++];
+
+			if (i < longitud && std::islower(static_cast<unsigned char>(formula[i])))
+			{
+				simbolo[j++] = formula[i++];
+			}
+			simbolo[j] = '\0';
+		}
+		else
 		{
 			return ResultadoParseo::SIMBOLO_INVALIDO;
 		}
@@ -28,17 +69,9 @@ ResultadoParseo parsearFormula(const char formula[], FormulaParseada &resultado)
 			return ResultadoParseo::DEMASIADOS_COMPONENTES;
 		}
 
-		char simbolo[TAM_MAX];
-		int j = 0;
-		simbolo[j++] = formula[i++];
-
-		if (i < longitud && std::islower(static_cast<unsigned char>(formula[i])))
-		{
-			simbolo[j++] = formula[i++];
-		}
-		simbolo[j] = '\0';
-
 		// Subíndice: uno o más dígitos consecutivos; si no hay dígitos, es 1.
+		// Aplica tanto a un símbolo simple como al subíndice tras un grupo
+		// entre paréntesis (p.ej. el "2" de "(OH)2").
 		int subindice = 0;
 		int digitos = 0;
 		while (i < longitud && std::isdigit(static_cast<unsigned char>(formula[i])))
@@ -80,6 +113,8 @@ const char *mensajeError(ResultadoParseo resultado)
 			return "La formula contiene un subindice invalido.";
 		case ResultadoParseo::DEMASIADOS_COMPONENTES:
 			return "La formula tiene mas elementos distintos de los soportados.";
+		case ResultadoParseo::GRUPO_MAL_FORMADO:
+			return "La formula tiene un grupo entre parentesis mal formado (sin cerrar, vacio o anidado).";
 	}
 	return "Error desconocido.";
 }

@@ -342,6 +342,132 @@ ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &form
 	return ResultadoNomenclatura::OK;
 }
 
+// Intenta reducir la fórmula ya parseada de una base a exactamente dos
+// componentes lógicos: el metal y el grupo hidroxilo con su subíndice.
+// Reconoce dos formas equivalentes que el parser puede entregar:
+//   - Con paréntesis:    {"Ca",1}, {"OH",2}           (2 componentes)
+//   - Sin paréntesis:    {"Na",1}, {"O",1}, {"H",1}    (3 componentes,
+//     solo válida cuando hay un único grupo OH, es decir cuando el
+//     subíndice de O y de H coinciden entre sí).
+// Devuelve false si la fórmula no coincide con ninguno de los dos patrones.
+static bool normalizarBase(const FormulaParseada &formula,
+                            const ComponenteFormula *&metal,
+                            int &subindiceHidroxilo)
+{
+	metal = nullptr;
+	subindiceHidroxilo = -1;
+
+	if (formula.cantidadComponentes == 2)
+	{
+		const ComponenteFormula *grupoOH = nullptr;
+		for (int i = 0; i < formula.cantidadComponentes; i++)
+		{
+			if (std::strcmp(formula.componentes[i].simbolo, "OH") == 0)
+			{
+				grupoOH = &formula.componentes[i];
+			}
+			else
+			{
+				metal = &formula.componentes[i];
+			}
+		}
+
+		if (metal != nullptr && grupoOH != nullptr)
+		{
+			subindiceHidroxilo = grupoOH->subindice;
+			return true;
+		}
+		return false;
+	}
+
+	if (formula.cantidadComponentes == 3)
+	{
+		const ComponenteFormula *oxigeno = nullptr;
+		const ComponenteFormula *hidrogeno = nullptr;
+		metal = nullptr;
+
+		for (int i = 0; i < formula.cantidadComponentes; i++)
+		{
+			const char *simbolo = formula.componentes[i].simbolo;
+			if (std::strcmp(simbolo, "O") == 0)
+			{
+				oxigeno = &formula.componentes[i];
+			}
+			else if (std::strcmp(simbolo, "H") == 0)
+			{
+				hidrogeno = &formula.componentes[i];
+			}
+			else
+			{
+				metal = &formula.componentes[i];
+			}
+		}
+
+		// Un único grupo OH exige que O y H tengan el mismo subíndice: en
+		// "NaOH" ambos son 1; una fórmula como "Na2OH" no representa un
+		// hidróxido válido (no forma dos grupos OH sin paréntesis).
+		if (metal != nullptr && oxigeno != nullptr && hidrogeno != nullptr &&
+		    oxigeno->subindice == hidrogeno->subindice)
+		{
+			subindiceHidroxilo = oxigeno->subindice;
+			return true;
+		}
+		return false;
+	}
+
+	return false;
+}
+
+ResultadoNomenclatura nomenclaturaStockBase(const FormulaParseada &formula, char resultado[TAM_MAX])
+{
+	resultado[0] = '\0';
+
+	const ComponenteFormula *metal = nullptr;
+	int subindiceHidroxilo = -1;
+	if (!normalizarBase(formula, metal, subindiceHidroxilo))
+	{
+		return ResultadoNomenclatura::NO_ES_BASE;
+	}
+
+	const InfoElemento *infoMetal = buscarElemento(metal->simbolo);
+	if (infoMetal == nullptr)
+	{
+		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
+	}
+
+	// El grupo hidroxilo (OH) siempre actúa con valencia 1. Igual que en
+	// óxidos, la fórmula reducida Metal(OH)n corresponde a la valencia v del
+	// metal cuando n = v (un metal de valencia v necesita v grupos OH de
+	// valencia 1 para neutralizar su carga; no hay reducción posible porque
+	// el grupo OH ya tiene valencia 1).
+	int valenciaDeducida = -1;
+
+	for (int i = 0; i < infoMetal->cantidadValencias; i++)
+	{
+		if (infoMetal->valencias[i] == subindiceHidroxilo)
+		{
+			valenciaDeducida = subindiceHidroxilo;
+			break;
+		}
+	}
+
+	if (valenciaDeducida == -1)
+	{
+		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
+	}
+
+	if (infoMetal->cantidadValencias == 1)
+	{
+		std::snprintf(resultado, TAM_MAX, "hidroxido de %s", infoMetal->nombre);
+	}
+	else
+	{
+		std::snprintf(resultado, TAM_MAX, "hidroxido de %s (%s)", infoMetal->nombre, aRomano(valenciaDeducida));
+	}
+
+	return ResultadoNomenclatura::OK;
+}
+
 const char *mensajeError(ResultadoNomenclatura resultado)
 {
 	switch (resultado)
@@ -360,6 +486,8 @@ const char *mensajeError(ResultadoNomenclatura resultado)
 			return "La formula no corresponde a un acido hidracido (se esperaba H + no metal en la proporcion correcta).";
 		case ResultadoNomenclatura::NO_ES_OXACIDO:
 			return "La formula no corresponde a un acido oxacido (se esperaba H + no metal + oxigeno).";
+		case ResultadoNomenclatura::NO_ES_BASE:
+			return "La formula no corresponde a una base (se esperaba metal + grupo hidroxilo OH, ej. Ca(OH)2 o NaOH).";
 		case ResultadoNomenclatura::ELEMENTO_DESCONOCIDO:
 			return "El elemento de la formula no esta en la tabla de elementos/no metales soportados.";
 		case ResultadoNomenclatura::VALENCIA_NO_DETERMINADA:

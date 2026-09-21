@@ -35,6 +35,10 @@ int main()
 				acidoOxacido();
 				break;
 
+			case 6: // Bases
+				base();
+				break;
+
 			case 0: // Salir
 				repetir = false;
 				break;

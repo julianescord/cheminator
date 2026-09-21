@@ -8,6 +8,7 @@ void test_nomenclatura_peroxidos();
 void test_nomenclatura_anhidridos();
 void test_nomenclatura_hidracidos();
 void test_nomenclatura_oxacidos();
+void test_nomenclatura_bases();
 
 int main()
 {
@@ -18,6 +19,7 @@ int main()
 	test_nomenclatura_anhidridos();
 	test_nomenclatura_hidracidos();
 	test_nomenclatura_oxacidos();
+	test_nomenclatura_bases();
 
 	if (g_pruebasFallidas == 0)
 	{
