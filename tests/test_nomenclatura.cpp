@@ -51,6 +51,18 @@ static void verificarHidracido(const char *formulaTexto, const char *esperado)
 	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
 }
 
+static void verificarOxacido(const char *formulaTexto, const char *esperado)
+{
+	FormulaParseada f;
+	ResultadoParseo rp = parsearFormula(formulaTexto, f);
+	ASSERT_TRUE(rp == ResultadoParseo::OK);
+
+	char resultado[TAM_MAX];
+	ResultadoNomenclatura rn = nomenclaturaTradicionalOxacido(f, resultado);
+	ASSERT_TRUE(rn == ResultadoNomenclatura::OK);
+	ASSERT_TRUE(std::strcmp(resultado, esperado) == 0);
+}
+
 void test_nomenclatura()
 {
 	// Metales con una sola valencia: sin número romano.
@@ -169,4 +181,36 @@ void test_nomenclatura_hidracidos()
 
 	parsearFormula("HCl2", f); // proporcion incorrecta (Cl deberia tener subindice 1)
 	ASSERT_TRUE(nomenclaturaTradicionalHidracido(f, resultado) == ResultadoNomenclatura::NO_ES_HIDRACIDO);
+}
+
+void test_nomenclatura_oxacidos()
+{
+	verificarOxacido("H2SO4", "acido sulfurico");
+	verificarOxacido("H2SO3", "acido sulfuroso");
+	verificarOxacido("HNO3", "acido nitrico");
+	verificarOxacido("HNO2", "acido nitroso");
+	verificarOxacido("H2CO3", "acido carbonico");
+	verificarOxacido("HClO", "acido hipocloroso");
+	verificarOxacido("HClO4", "acido perclorico");
+	verificarOxacido("HBrO3", "acido bromico");
+	verificarOxacido("HIO2", "acido iodoso");
+
+	// Caso especial: el fosforo no sigue la regla simple de intercambio de
+	// valencias (H3PO3/H3PO4, no HPO2/HPO3), justo el motivo de tabular las
+	// formulas en vez de derivarlas aritmeticamente.
+	verificarOxacido("H3PO3", "acido fosforoso");
+	verificarOxacido("H3PO4", "acido fosforico");
+
+	// Casos de error.
+	FormulaParseada f;
+	char resultado[TAM_MAX];
+
+	parsearFormula("HCl", f); // solo 2 componentes, no es oxacido
+	ASSERT_TRUE(nomenclaturaTradicionalOxacido(f, resultado) == ResultadoNomenclatura::NO_ES_OXACIDO);
+
+	parsearFormula("NaClO3", f); // Na no es H
+	ASSERT_TRUE(nomenclaturaTradicionalOxacido(f, resultado) == ResultadoNomenclatura::NO_ES_OXACIDO);
+
+	parsearFormula("H4SO4", f); // proporcion que no corresponde a ningun oxacido tabulado de S
+	ASSERT_TRUE(nomenclaturaTradicionalOxacido(f, resultado) == ResultadoNomenclatura::VALENCIA_NO_DETERMINADA);
 }

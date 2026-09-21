@@ -290,6 +290,58 @@ ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &fo
 	return ResultadoNomenclatura::OK;
 }
 
+ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &formula, char resultado[TAM_MAX])
+{
+	resultado[0] = '\0';
+
+	if (formula.cantidadComponentes != 3)
+	{
+		return ResultadoNomenclatura::NO_ES_OXACIDO;
+	}
+
+	const ComponenteFormula *hidrogeno = nullptr;
+	const ComponenteFormula *noMetalComp = nullptr;
+	const ComponenteFormula *oxigeno = nullptr;
+
+	for (int i = 0; i < formula.cantidadComponentes; i++)
+	{
+		const char *simbolo = formula.componentes[i].simbolo;
+		if (std::strcmp(simbolo, "H") == 0)
+		{
+			hidrogeno = &formula.componentes[i];
+		}
+		else if (std::strcmp(simbolo, "O") == 0)
+		{
+			oxigeno = &formula.componentes[i];
+		}
+		else
+		{
+			noMetalComp = &formula.componentes[i];
+		}
+	}
+
+	if (hidrogeno == nullptr || noMetalComp == nullptr || oxigeno == nullptr)
+	{
+		return ResultadoNomenclatura::NO_ES_OXACIDO;
+	}
+
+	if (buscarNoMetal(noMetalComp->simbolo) == nullptr)
+	{
+		return ResultadoNomenclatura::ELEMENTO_DESCONOCIDO;
+	}
+
+	const InfoOxacido *infoOxacido = buscarOxacido(noMetalComp->simbolo, hidrogeno->subindice,
+	                                                noMetalComp->subindice, oxigeno->subindice);
+	if (infoOxacido == nullptr)
+	{
+		return ResultadoNomenclatura::VALENCIA_NO_DETERMINADA;
+	}
+
+	std::strncpy(resultado, infoOxacido->nombre, TAM_MAX - 1);
+	resultado[TAM_MAX - 1] = '\0';
+	return ResultadoNomenclatura::OK;
+}
+
 const char *mensajeError(ResultadoNomenclatura resultado)
 {
 	switch (resultado)
@@ -306,6 +358,8 @@ const char *mensajeError(ResultadoNomenclatura resultado)
 			return "La formula no corresponde a un anhidrido (se esperaba no metal + oxigeno).";
 		case ResultadoNomenclatura::NO_ES_HIDRACIDO:
 			return "La formula no corresponde a un acido hidracido (se esperaba H + no metal en la proporcion correcta).";
+		case ResultadoNomenclatura::NO_ES_OXACIDO:
+			return "La formula no corresponde a un acido oxacido (se esperaba H + no metal + oxigeno).";
 		case ResultadoNomenclatura::ELEMENTO_DESCONOCIDO:
 			return "El elemento de la formula no esta en la tabla de elementos/no metales soportados.";
 		case ResultadoNomenclatura::VALENCIA_NO_DETERMINADA:

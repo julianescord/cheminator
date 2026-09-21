@@ -106,3 +106,10 @@ void acidoHidracido()
 		"Introduzca la formula del acido hidracido del que desea conocer su nomenclatura (ej. HCl):",
 		nomenclaturaTradicionalHidracido);
 }
+
+void acidoOxacido()
+{
+	pedirFormulaYNombrar(
+		"Introduzca la formula del acido oxacido del que desea conocer su nomenclatura (ej. H2SO4):",
+		nomenclaturaTradicionalOxacido);
+}

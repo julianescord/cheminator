@@ -5,6 +5,7 @@
 #include "formula.h"
 #include "no_metales.h"
 #include "hidracidos.h"
+#include "oxacidos.h"
 
 enum class ResultadoNomenclatura {
 	OK,
@@ -13,6 +14,7 @@ enum class ResultadoNomenclatura {
 	NO_ES_PEROXIDO,          // no tiene exactamente metal + grupo peroxo (O en subíndice par)
 	NO_ES_ANHIDRIDO,         // no tiene exactamente no metal + oxígeno
 	NO_ES_HIDRACIDO,         // no tiene exactamente H + no metal formador de hidrácido, en la proporción esperada
+	NO_ES_OXACIDO,           // no tiene exactamente H + no metal + oxígeno
 	ELEMENTO_DESCONOCIDO,    // el metal no está en la tabla de elementos
 	VALENCIA_NO_DETERMINADA, // el subíndice de O no corresponde a ninguna valencia conocida del metal
 };
@@ -46,6 +48,16 @@ ResultadoNomenclatura nomenclaturaTradicionalAnhidrido(const FormulaParseada &fo
 // de la tabla de hidrácidos, con el subíndice de H igual a la valencia
 // negativa de ese no metal (p.ej. HCl, H2S).
 ResultadoNomenclatura nomenclaturaTradicionalHidracido(const FormulaParseada &formula, char resultado[TAM_MAX]);
+
+// Calcula la nomenclatura tradicional de un ácido oxácido (HxEyOz, con E un
+// no metal) a partir de su fórmula ya parseada, escribiendo el resultado
+// (p.ej. "acido sulfurico") en `resultado`. Requiere que `formula` tenga
+// exactamente tres componentes: hidrógeno ("H"), un no metal y oxígeno
+// ("O"). La fórmula se busca tal cual (ya reducida) en una tabla de
+// oxácidos conocidos, en vez de derivarse aritméticamente de anhídrido+H2O
+// (ver la nota en oxacidos.h sobre por qué esa derivación no siempre es
+// correcta).
+ResultadoNomenclatura nomenclaturaTradicionalOxacido(const FormulaParseada &formula, char resultado[TAM_MAX]);
 
 // Devuelve un mensaje de error legible para un ResultadoNomenclatura distinto de OK.
 const char *mensajeError(ResultadoNomenclatura resultado);

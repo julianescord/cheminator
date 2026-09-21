@@ -31,6 +31,10 @@ int main()
 				acidoHidracido();
 				break;
 
+			case 5: // Acidos oxacidos
+				acidoOxacido();
+				break;
+
 			case 0: // Salir
 				repetir = false;
 				break;

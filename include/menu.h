@@ -16,4 +16,7 @@ void anhidrido();
 // Pide una fórmula de ácido hidrácido y muestra su nomenclatura tradicional.
 void acidoHidracido();
 
+// Pide una fórmula de ácido oxácido y muestra su nomenclatura tradicional.
+void acidoOxacido();
+
 #endif // CHEMINATOR_MENU_H
