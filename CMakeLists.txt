@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(cheminator
-	VERSION 0.1.0
+	VERSION 0.2.0
 	DESCRIPTION "Libreria de nomenclatura quimica inorganica en espanol"
 	LANGUAGES CXX)
 
@@ -159,10 +159,19 @@ install(EXPORT cheminatorTargets
 # targets no alcanza, hay que generar tambien ese archivo de configuracion.
 include(CMakePackageConfigHelpers)
 
+# Mientras el proyecto siga en 0.x, la compatibilidad se declara por version
+# menor. Con SameMajorVersion, CMake daria por compatibles la 0.1 y la 0.2, y
+# no lo son: cada version menor ha agregado valores a los enums publicos, asi
+# que un switch exhaustivo de quien consume la libreria deja de compilar.
+#
+# No se usa ExactVersion porque exige que la cadena coincida entera: con ella,
+# find_package(cheminator 0.2) falla contra una instalacion 0.2.0, y obligar a
+# escribir siempre los tres numeros es una molestia sin ganancia. Cuando se
+# llegue a 1.0 y la API se estabilice, esto puede volver a SameMajorVersion.
 write_basic_package_version_file(
 	"${CMAKE_CURRENT_BINARY_DIR}/cheminatorConfigVersion.cmake"
 	VERSION ${PROJECT_VERSION}
-	COMPATIBILITY SameMajorVersion)
+	COMPATIBILITY SameMinorVersion)
 
 configure_package_config_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/cheminatorConfig.cmake.in"

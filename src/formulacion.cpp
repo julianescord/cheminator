@@ -3,6 +3,7 @@
 #include "afijos.hpp"
 #include "cheminator/elementos.hpp"
 #include "cheminator/hidracidos.hpp"
+#include "cheminator/ligandos.hpp"
 #include "cheminator/no_metales.hpp"
 #include "cheminator/oxacidos.hpp"
 #include "cheminator/radicales.hpp"
@@ -532,6 +533,51 @@ ResultadoFormulacion formularSal(std::string_view radicalTexto, std::string_view
 	return armar(formula, CategoriaCompuesto::SAL_OXISAL, pasos);
 }
 
+// Reconoce si un nombre es de un compuesto de coordinacion, que todavia solo
+// se puede recorrer de formula a nombre.
+//
+// No basta con mirar el numero romano: "sulfato de Hierro (III)" tambien lo
+// lleva y si se puede formular. Lo distintivo es que en un complejo los
+// ligandos van pegados al metal en una sola palabra, precedidos de un prefijo
+// multiplicador ("hexaciano-", "tetraamin-").
+bool pareceComplejo(std::string_view normalizado)
+{
+	static constexpr std::string_view PREFIJOS[] = {"di",    "tri",   "tetra", "penta",
+	                                                 "hexa",  "bis",   "tris",  "tetrakis"};
+
+	// La primera palabra es la que llevaria el prefijo y los ligandos.
+	const std::size_t finPrimera = normalizado.find(' ');
+	const std::string_view primera = normalizado.substr(0, finPrimera);
+
+	// Una sal se nombra "<radical> de <metal>", y su radical esta tabulado. Si
+	// la primera palabra es un radical conocido, no hay nada que decidir.
+	if (radicalPorNombre(primera) != nullptr)
+	{
+		return false;
+	}
+
+	for (const std::string_view prefijo : PREFIJOS)
+	{
+		if (!primera.starts_with(prefijo))
+		{
+			continue;
+		}
+
+		// Tras el prefijo debe venir el nombre de un ligando tabulado, que es
+		// lo que confirma la lectura.
+		const std::string_view resto = primera.substr(prefijo.size());
+		for (const InfoLigando &ligando : todosLosLigandos())
+		{
+			if (resto.starts_with(normalizarNombre(ligando.nombre)))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 // Separa "<algo> de <algo>" en sus dos mitades.
 struct DosPartes {
 	std::string_view primera;
@@ -571,6 +617,9 @@ std::string_view mensajeError(ErrorFormulacion error) noexcept
 		return "La valencia indicada no es una de las que admite ese elemento.";
 	case ErrorFormulacion::NOMBRE_MAL_FORMADO:
 		return "El nombre no tiene la forma esperada.";
+	case ErrorFormulacion::COMPLEJO_NO_SOPORTADO:
+		return "Parece un compuesto de coordinacion. Por ahora solo se pueden recorrer de formula a "
+		       "nombre, no al reves.";
 	}
 	return "Error desconocido.";
 }
@@ -612,6 +661,15 @@ ResultadoFormulacion formular(std::string_view nombre)
 
 	// Lo que queda con forma "<radical> de <metal>" se intenta como sal, que
 	// es la unica categoria que no lleva palabra inicial propia.
+	// Un nombre de complejo se reconoce por el estado de oxidacion entre
+	// parentesis al final ("...ferrato (III)"), que ninguna otra categoria
+	// escribe asi. Se detecta antes de intentar leerlo como sal para no dar un
+	// error que hable de radicales cuando el problema es otro.
+	if (pareceComplejo(normalizado))
+	{
+		return ErrorFormulacion::COMPLEJO_NO_SOPORTADO;
+	}
+
 	const DosPartes partes = separarPorDe(normalizado);
 	if (partes.valido)
 	{

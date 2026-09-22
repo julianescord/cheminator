@@ -6,7 +6,7 @@ Librería C++ y programa de consola para la nomenclatura de compuestos químicos
 
 Funciona en **las dos direcciones**: de la fórmula al nombre y del nombre a la fórmula. Además **detecta automáticamente** a qué categoría pertenece un compuesto y **explica su razonamiento paso a paso**, en vez de limitarse a devolver una respuesta.
 
-> Proyecto educativo en desarrollo. El núcleo está separado como librería reutilizable (`libcheminator`); el programa de consola es solo uno de sus clientes.
+> Versión 0.2.0 · Proyecto educativo en desarrollo. El núcleo está separado como librería reutilizable (`libcheminator`); el programa de consola es solo uno de sus clientes.
 
 ## Estructura del proyecto
 
@@ -37,6 +37,7 @@ cheminator/
 ├── .github/workflows/    # CI: nativo, solo-libreria, consumidor en C y WebAssembly
 ├── CMakeLists.txt
 ├── Makefile              # Envoltorio fino sobre CMake
+├── CHANGELOG.md          # Cambios de cada version publicada
 └── README.md
 ```
 
@@ -109,9 +110,14 @@ const inverso = Cheminator.formular('sulfato de Aluminio');
 Una vez instalada, otro proyecto CMake la consume así:
 
 ```cmake
-find_package(cheminator REQUIRED)
+find_package(cheminator 0.2 REQUIRED)
 target_link_libraries(mi_programa PRIVATE cheminator::cheminator)
 ```
+
+Mientras el proyecto siga en `0.x`, la versión pedida debe coincidir en el
+número menor: una versión menor puede romper la compatibilidad, así que pedir
+`0.1` contra una instalación `0.2` falla en vez de enlazar en silencio. Los
+cambios de cada versión están en [CHANGELOG.md](CHANGELOG.md).
 
 ### Desde otros lenguajes
 
@@ -293,6 +299,7 @@ original.
 - [x] Formulación inversa: escribir el nombre en español y obtener la fórmula
 - [x] Ampliar tablas de metales, no metales y radicales
 - [x] Compuestos de coordinación (`[Fe(CN)6]³⁻`), con esfera de coordinación y estado de oxidación deducido
+- [ ] Formulación inversa de complejos: hoy van solo de fórmula a nombre
 
 ## Licencia
 

@@ -79,6 +79,19 @@ void test_formulacion()
 	ASSERT_TRUE(formulaEs("anhidrido sulfuroso", "SO2"));
 	ASSERT_TRUE(formulaEs("anhidrido sulfurico", "SO3"));
 
+	// --- Complejos: se reconocen, aunque todavia no se formulan --------------
+
+	// Decir "radical desconocido" ante el nombre de un complejo mandaba a
+	// buscar el problema donde no estaba.
+	ASSERT_TRUE(errorEs("hexacianoferrato (III) de potasio", ErrorFormulacion::COMPLEJO_NO_SOPORTADO));
+	ASSERT_TRUE(errorEs("tetraamincobre (II)", ErrorFormulacion::COMPLEJO_NO_SOPORTADO));
+
+	// Una sal con numero romano no es un complejo y debe seguir formulandose:
+	// es lo que distingue el prefijo multiplicador pegado a un ligando de un
+	// radical tabulado.
+	ASSERT_TRUE(formulaEs("sulfato de Hierro (III)", "Fe2(SO4)3"));
+	ASSERT_TRUE(formulaEs("carbonato de Bario", "BaCO3"));
+
 	// --- Normalizacion, en aislado -------------------------------------------
 
 	// El resultado se guarda en una variable antes de comparar: pasar

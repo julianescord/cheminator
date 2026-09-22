@@ -25,6 +25,8 @@ enum class ErrorFormulacion {
 	FALTA_VALENCIA,         // el elemento tiene varias valencias y no se indico
 	VALENCIA_INVALIDA,      // el numero romano no corresponde a ese elemento
 	NOMBRE_MAL_FORMADO,     // falta el "de", sobran palabras, etc.
+	COMPLEJO_NO_SOPORTADO,  // es un compuesto de coordinacion, que todavia
+	                        // solo va de formula a nombre
 };
 
 std::string_view mensajeError(ErrorFormulacion error) noexcept;
